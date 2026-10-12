@@ -1,0 +1,137 @@
+name: Cloudflare
+
+# Builds and validates JurisMind on every push and pull request, and
+# (optionally) deploys the Worker.
+#
+# No secrets are needed for the build and the checks. Cloudflare's own git
+# integration — Workers Builds — already runs `npx wrangler deploy` on every
+# push, so the deploy steps below are only used when you want CI to publish
+# instead, or as a belt-and-braces second path. They are skipped automatically
+# while the token is missing.
+#
+# Optional repository secrets:
+#   CLOUDFLARE_API_TOKEN   — API token with the "Workers Scripts: Edit" permission
+#   CLOUDFLARE_ACCOUNT_ID  — your Cloudflare account id
+#
+# The Worker name and the build command come from wrangler.toml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: cloudflare-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and validate the site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Exactly the command wrangler runs itself before deploying (the
+      # [build] command in wrangler.toml), so CI and production agree.
+      - name: Generate the pages and the Cloudflare bundle
+        run: node tools/cf-build.mjs
+
+      - name: Check the bundle
+        run: |
+          test -f dist/index.html
+          test -f dist/fr/index.html
+          test -f dist/ar/index.html
+          test -f dist/assets/css/jurismind.css
+          test -f dist/404.html
+          test -f dist/_headers
+          test -f dist/_redirects
+          test -f dist/sitemap.xml
+          echo "dist/ contains $(find dist -type f | wc -l) files"
+
+      # Fail the build if a page or a translation key went missing
+      - name: Sanity-check every page in the three languages
+        run: |
+          for lang in "" "fr/" "ar/"; do
+            for page in index dashboard path practice subjects tutor; do
+              f="dist/${lang}${page}.html"
+              [ -f "$f" ] || { echo "missing $f"; exit 1; }
+              grep -q 'id="jm-content"' "$f" || { echo "no content dictionary in $f"; exit 1; }
+              grep -q 'class="flag"' "$f" || { echo "language picker missing from $f"; exit 1; }
+            done
+          done
+          echo "21 pages verified"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jurismind-dist
+          path: dist
+          retention-days: 7
+
+  deploy:
+    name: Deploy the Worker
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      # A step-level `if` cannot read the `secrets` context, so the token is
+      # copied into `env` first and the steps below test that copy.
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: No Cloudflare token configured — skipping the deploy
+        if: env.CLOUDFLARE_API_TOKEN == ''
+        run: |
+          echo "::notice::CLOUDFLARE_API_TOKEN is not set, so this workflow only builds and validates. \
+          Cloudflare's git integration (Workers Builds) publishes on push to main — add the two secrets \
+          if you want GitHub Actions to deploy as well."
+
+      - name: Publish to Cloudflare
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+
+  preview:
+    name: Preview version for the pull request
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: No Cloudflare token configured — skipping the preview
+        if: env.CLOUDFLARE_API_TOKEN == ''
+        run: |
+          echo "::notice::CLOUDFLARE_API_TOKEN is not set, so no preview version was uploaded. \
+          Cloudflare's git integration still publishes a preview URL for this pull request."
+
+      # `versions upload` publishes a new version of the Worker without moving
+      # the production traffic; the returned preview URL is printed below.
+      - name: Upload a preview version
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: versions upload
