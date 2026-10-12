@@ -1,4 +1,6 @@
-# Files Cloudflare Pages should never upload
+# Files Cloudflare should never upload when the repository root itself is
+# used as an assets directory (wrangler.toml normally publishes ./dist, which
+# already contains only web files)
 tools/
 *.md
 wrangler.toml

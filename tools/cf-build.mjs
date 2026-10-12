@@ -1,11 +1,19 @@
 /* ============================================================
-   JurisMind — Cloudflare Pages build step
+   JurisMind — Cloudflare build step
    Copies the static site into dist/ and writes the Cloudflare-only
    files (_headers, _redirects, 404.html) there, so the repository root
    stays clean and the site keeps working from any plain web server.
 
    Run:  node tools/cf-build.mjs
-   Emits: dist/  (ready for `wrangler pages deploy dist`)
+   Emits: dist/  (the assets directory declared in wrangler.toml, so
+                  `wrangler deploy` publishes exactly this folder)
+
+   wrangler.toml runs this script automatically through its [build]
+   command before every `wrangler deploy` / `wrangler versions upload` /
+   `wrangler dev`, and the GitHub workflow calls it directly.
+
+   SITE_URL (optional): absolute origin used for sitemap.xml and
+   robots.txt. Defaults to the jurismind.pages.dev placeholder.
    ============================================================ */
 import { mkdirSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
@@ -55,8 +63,8 @@ copyTree(ROOT, DIST);
 
 /* ---------- 2. Cloudflare _headers ---------- */
 const HEADERS = `# ============================================================
-# JurisMind — Cloudflare Pages headers
-# https://developers.cloudflare.com/pages/configuration/headers/
+# JurisMind — Cloudflare headers
+# https://developers.cloudflare.com/workers/static-assets/headers/
 # ============================================================
 
 /*
@@ -88,48 +96,39 @@ const HEADERS = `# ============================================================
 
 /* ---------- 3. Cloudflare _redirects ---------- */
 const REDIRECTS = `# ============================================================
-# JurisMind — Cloudflare Pages redirects
-# https://developers.cloudflare.com/pages/configuration/redirects/
+# JurisMind — Cloudflare redirects
+# https://developers.cloudflare.com/workers/static-assets/redirects/
 # ============================================================
 
-# Clean URLs for the English (root) build — 301 keeps SEO consolidating
-/dashboard     /dashboard.html     301
-/path          /path.html          301
-/practice      /practice.html      301
-/subjects      /subjects.html      301
-/tutor         /tutor.html         301
+# Clean URLs need NO rules here: \`html_handling = "auto-trailing-slash"\` in
+# wrangler.toml already serves /dashboard from dashboard.html and /fr/ from
+# fr/index.html, and Cloudflare canonicalises the other direction too
+# (/dashboard.html → 307 → /dashboard, /fr → 307 → /fr/).
+#
+# Never point a rule at a \`.html\` file: /dashboard → /dashboard.html would bounce
+# straight back to /dashboard and loop forever. The targets below are the
+# canonical, extension-free paths.
 
-# French
-/fr/dashboard  /fr/dashboard.html  301
-/fr/path       /fr/path.html       301
-/fr/practice   /fr/practice.html   301
-/fr/subjects   /fr/subjects.html   301
-/fr/tutor      /fr/tutor.html      301
+# Legacy / convenience links: /login is not part of the journey, so it forwards
+# to the dashboard in the matching language.
+/login         /dashboard     301
+/fr/login      /fr/dashboard  301
+/ar/login      /ar/dashboard  301
 
-# Arabic
-/ar/dashboard  /ar/dashboard.html  301
-/ar/path       /ar/path.html       301
-/ar/practice   /ar/practice.html   301
-/ar/subjects   /ar/subjects.html   301
-/ar/tutor      /ar/tutor.html      301
-
-# Legacy / convenience links
-/login         /dashboard.html     301
-/fr/login      /fr/dashboard.html  301
-/ar/login      /ar/dashboard.html  301
-
-# No catch-all on purpose: Cloudflare Pages serves the bundled 404.html
-# automatically for any route that does not match a file, and a `/*` rule
-# would also match real assets.
+# No catch-all on purpose: anything that does not match a file gets the bundled
+# 404.html with a 404 status (not_found_handling = "404-page"), and a \`/*\` rule
+# would also swallow real assets.
 `;
 
 /* ---------- 4. branded 404 (served by Cloudflare for unknown paths) ---------- */
 function page404() {
   const src = readFileSync(join(ROOT, "index.html"), "utf8");
+  // Canonical, extension-free URLs — Cloudflare redirects /index.html → / and
+  // /fr/index.html → /fr/, so linking straight at the canonical path skips a hop.
   const langLinks = [
-    { code: "en", href: "/index.html", flag: "#012169", label: "English" },
-    { code: "fr", href: "/fr/index.html", flag: "#002395", label: "Français" },
-    { code: "ar", href: "/ar/index.html", flag: "#C1272D", label: "العربية" }
+    { code: "en", href: "/", flag: "#012169", label: "English" },
+    { code: "fr", href: "/fr/", flag: "#002395", label: "Français" },
+    { code: "ar", href: "/ar/", flag: "#C1272D", label: "العربية" }
   ];
   return src
     .replace(/<title>[^<]*<\/title>/, "<title>404 — JurisMind</title>")
@@ -148,7 +147,7 @@ function page404() {
               `<a class="btn btn-ghost" href="${l.href}"><span style="width:20px;height:13px;border-radius:3px;background:${l.flag};box-shadow:inset 0 0 0 1px rgba(25,25,35,.2);display:inline-block"></span>${l.label}</a>`
           )
           .join("")}
-        <a class="btn btn-lime" href="/index.html">JurisMind home</a>
+        <a class="btn btn-lime" href="/">JurisMind home</a>
       </div>
     </div>
     $1`
@@ -158,11 +157,14 @@ function page404() {
 /* ---------- 5. robots.txt + sitemap.xml (only if not already provided) ---------- */
 function writeExtras(siteUrl) {
   const today = new Date().toISOString().slice(0, 10);
+  // Canonical URLs as Cloudflare serves them: /, /dashboard, /fr/,
+  // /fr/dashboard … (a .html URL answers with a 307 to these).
   const pages = ["", "dashboard", "path", "practice", "subjects", "tutor"];
   const urls = [];
   for (const lang of ["", "fr", "ar"]) {
     for (const p of pages) {
-      urls.push(`  <url><loc>${siteUrl}/${lang ? lang + "/" : ""}${p || "index"}.html</loc><lastmod>${today}</lastmod></url>`);
+      const loc = p === "" ? `${siteUrl}/${lang ? lang + "/" : ""}` : `${siteUrl}/${[lang, p].filter(Boolean).join("/")}`;
+      urls.push(`  <url><loc>${loc}</loc><lastmod>${today}</lastmod></url>`);
     }
   }
   writeFileSync(
@@ -195,7 +197,9 @@ function writeExtras(siteUrl) {
 }
 
 /* ---------- 6. .assetsignore (keeps non-web files out of a direct upload) ---------- */
-const ASSETSIGNORE = `# Files Cloudflare Pages should never upload
+const ASSETSIGNORE = `# Files Cloudflare should never upload when the repository root itself is
+# used as an assets directory (wrangler.toml normally publishes ./dist, which
+# already contains only web files)
 tools/
 *.md
 wrangler.toml
@@ -211,12 +215,15 @@ writeFileSync(join(DIST, "_headers"), HEADERS);
 writeFileSync(join(DIST, "_redirects"), REDIRECTS);
 writeFileSync(join(DIST, "404.html"), page404());
 writeFileSync(join(ROOT, ".assetsignore"), ASSETSIGNORE);
-writeExtras("https://jurismind.pages.dev");
+const siteUrl = (process.env.SITE_URL || "https://jurismind.pages.dev").replace(/\/+$/, "");
+writeExtras(siteUrl);
 
 console.log(
   `JurisMind → dist/ : ${files} files, ${(bytes / 1024).toFixed(0)} kB copied, plus _headers, _redirects, 404.html, sitemap.xml, robots.txt, site.webmanifest`
 );
-console.log(`Deploy with:  npx wrangler pages deploy dist`);
+console.log(`Sitemap/robots origin: ${siteUrl}  (override with the SITE_URL env variable)`);
+console.log(`Preview locally:  npx wrangler dev`);
+console.log(`Deploy:           npx wrangler deploy   (wrangler runs this build itself)`);
 if (!existsSync(join(DIST, "index.html"))) {
   console.error("JurisMind: index.html is missing from dist/ — check the copy rules.");
   process.exit(1);

@@ -1,37 +1,75 @@
 # ============================================================
-# JurisMind — Cloudflare Pages configuration
-# Static site, no build step required (the HTML is committed).
-# Docs: https://developers.cloudflare.com/pages/configuration/build-configuration/
+# JurisMind — Cloudflare configuration
+#
+# The site is served by a Worker that has NO script: the files in
+# dist/ are the whole application. Wrangler builds them (see [build])
+# and uploads them as static assets.
+#
+# Docs: https://developers.cloudflare.com/workers/static-assets/
+#
+# The same file drives every entry point:
+#   Cloudflare dashboard (Workers Builds) → deploy command: npx wrangler deploy
+#   GitHub Actions                        → .github/workflows/cloudflare.yml
+#   Your machine                          → npx wrangler deploy
 # ============================================================
 
-# Build command (optional): leaves the committed HTML untouched, it only
-# writes _headers / _redirects / 404.html into dist/ so the root stays clean.
-# Delete this line (or clear it in the dashboard) to publish the repo as-is.
+# Worker name. Must match the Worker/Project in Cloudflare if you deploy by
+# hand. Workers Builds passes the name through WRANGLER_CI_OVERRIDE_NAME, so a
+# mismatch there is only logged as a warning — rename this line if your own
+# Worker is called something else (Workers & Pages → your Worker → Settings).
+name = "droit-des-affaires"
+
+# Bump this to today's date when you change the file. It pins the runtime
+# behaviour of the Worker; there is no script here, so it mainly documents the
+# version of Cloudflare's asset router this deploy was validated against.
+compatibility_date = "2026-10-12"
+
+# ------------------------------------------------------------------
+# Build: regenerate dist/ before every deploy.
+#
+# Wrangler runs this automatically for `wrangler deploy`,
+# `wrangler versions upload` and `wrangler dev`, so no build command has to be
+# configured in the Cloudflare dashboard or in CI. It writes 21 pages plus
+# _headers, _redirects, 404.html, sitemap.xml, robots.txt, site.webmanifest.
+# ------------------------------------------------------------------
 [build]
 command = "node tools/cf-build.mjs"
 
-# Output directory to publish (Pages default; the build script fills it in).
-[build.assets]
-directory = "dist"
+# ------------------------------------------------------------------
+# The published site.
+# ------------------------------------------------------------------
+[assets]
+directory = "./dist"
 
-# Node version for the build image.
-[build.environment]
-NODE_VERSION = "22"
+# Unmatched requests get dist/404.html with a real 404 status code
+# (the branded page with the three language links).
+not_found_handling = "404-page"
+
+# Clean URLs, exactly like Cloudflare Pages served them:
+#   /dashboard  → 200, from dashboard.html     (no rule needed)
+#   /fr         → 307 → /fr/  → fr/index.html
+#   /, /fr/, /ar/ → the matching index.html
+#   /dashboard.html → 307 → /dashboard  (the canonical, extension-free path)
+# The explicit value keeps that promise even if the platform default changes.
+#
+# Because of the last line, dist/_redirects must never point at a .html file:
+# /dashboard → /dashboard.html would bounce back to /dashboard forever. That is
+# why the generated _redirects only holds the /login aliases — see
+# tools/cf-build.mjs and the routing table in docs/CLOUDFLARE.md.
+html_handling = "auto-trailing-slash"
 
 # ------------------------------------------------------------------
-# Compatibility: keep the plain static behaviour we rely on.
-# ------------------------------------------------------------------
-[compatibility_flags]
-# Respect the incoming User-Agent so the *intended* effect of mobile
-# redirects is explicit and code-cache behaviour stays predictable.
-user_agent_caching = true
-
-# ------------------------------------------------------------------
-# Preview deployments: every branch/PR gets its own URL.
-# ------------------------------------------------------------------
-[preview]
-# nothing special needed — the same static assets are served
-
-# ------------------------------------------------------------------
-# Aliases: jurismind.pages.dev equivalents (set in the dashboard).
+# Notes
+#
+# * There is deliberately no `main`: an assets-only Worker is valid and costs
+#   one static-asset request, not a Worker invocation. Add `main = "src/index.js"`
+#   later if you want dynamic endpoints (auth, a real tutor, progress sync).
+#
+# * Preview URLs: every branch you push gets one at
+#   https://<branch>-<worker-name>.<your-subdomain>.workers.dev
+#   (Cloudflare's git integration creates these for pull requests too).
+#
+# * This file is uploaded to the assets directory lookup only through dist/:
+#   .assetsignore at the repository root is what protects a direct upload of
+#   the repository itself (see docs/CLOUDFLARE.md).
 # ------------------------------------------------------------------

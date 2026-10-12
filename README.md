@@ -48,7 +48,9 @@ with a content hash (`?v=…`) so a stale cached script can never hide the list 
 tiny guard script in each document's `<head>` sends the visitor to the same page in the
 remembered language before anything paints, keeping query strings (`?subject=…`) and
 hashes intact and never redirecting a first-time visitor. Deep links work too:
-`/index.html?lang=ar`, `/fr/practice.html?lang=en&subject=labour`.
+`/index.html?lang=ar`, `/fr/practice.html?lang=en&subject=labour` — on Cloudflare those clean up
+on the way in (`/index.html?lang=ar` → `/?lang=ar`, `/fr/practice.html` → `/fr/practice`) with the
+query string intact.
 
 ## Design system
 
@@ -77,21 +79,26 @@ tools/build.mjs                 # static generator (no dependencies)
 
 The repository ships everything Cloudflare needs:
 
+It is published as a **Worker with static assets** — no Worker script, `dist/` *is* the site.
+`wrangler.toml` runs the build itself, so the dashboard only needs the default deploy command.
+
 | File | Role |
 | --- | --- |
-| `wrangler.toml` | Pages project config (build command, `dist` output, Node 22) |
+| `wrangler.toml` | Worker config: `name`, `compatibility_date`, `[build] command = node tools/cf-build.mjs`, `[assets] directory = ./dist`, branded 404 |
 | `tools/cf-build.mjs` | Regenerates the pages and writes `dist/` + `_headers`, `_redirects`, `404.html`, `sitemap.xml`, `robots.txt`, `site.webmanifest` |
-| `.github/workflows/cloudflare-pages.yml` | CI: builds, verifies all 21 pages, deploys on `main`, preview per PR |
-| `.assetsignore` | Keeps `tools/`, `*.md` and `wrangler.toml` out of direct uploads |
-| `docs/CLOUDFLARE.md` | Step-by-step guide (dashboard, Wrangler CLI, Workers with assets) |
+| `.github/workflows/cloudflare.yml` | CI: builds, verifies all 21 pages, uploads `dist/`; deploys and previews when the Cloudflare secrets are set |
+| `.assetsignore` | Keeps `tools/`, `*.md` and `wrangler.toml` out of a direct upload of the repository root |
+| `docs/CLOUDFLARE.md` | Step-by-step guide (dashboard, Wrangler CLI, GitHub Actions, Pages) |
 
 ```bash
-node tools/cf-build.mjs                 # → dist/
-npx wrangler pages deploy dist          # → https://<project>.pages.dev
+node tools/cf-build.mjs        # → dist/
+npx wrangler dev               # preview dist/ locally, headers and redirects included
+npx wrangler deploy            # → https://<worker-name>.<subdomain>.workers.dev
 ```
 
-Cloudflare Pages can also build straight from Git: build command
-`node tools/cf-build.mjs`, output directory `dist`.
+Cloudflare builds straight from Git too: connect the repository, leave the build command empty
+(wrangler runs `node tools/cf-build.mjs`) and keep the default deploy command `npx wrangler deploy`.
+Cloudflare Pages can serve the same `dist/` folder instead — see `docs/CLOUDFLARE.md`.
 
 ## Build & run
 
