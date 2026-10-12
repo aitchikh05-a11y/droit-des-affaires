@@ -73,6 +73,26 @@ tools/content/{en,fr,ar}.mjs    # content dictionaries: copy, 8 subjects, 19 exe
 tools/build.mjs                 # static generator (no dependencies)
 ```
 
+## Deploying to Cloudflare
+
+The repository ships everything Cloudflare needs:
+
+| File | Role |
+| --- | --- |
+| `wrangler.toml` | Pages project config (build command, `dist` output, Node 22) |
+| `tools/cf-build.mjs` | Regenerates the pages and writes `dist/` + `_headers`, `_redirects`, `404.html`, `sitemap.xml`, `robots.txt`, `site.webmanifest` |
+| `.github/workflows/cloudflare-pages.yml` | CI: builds, verifies all 21 pages, deploys on `main`, preview per PR |
+| `.assetsignore` | Keeps `tools/`, `*.md` and `wrangler.toml` out of direct uploads |
+| `docs/CLOUDFLARE.md` | Step-by-step guide (dashboard, Wrangler CLI, Workers with assets) |
+
+```bash
+node tools/cf-build.mjs                 # → dist/
+npx wrangler pages deploy dist          # → https://<project>.pages.dev
+```
+
+Cloudflare Pages can also build straight from Git: build command
+`node tools/cf-build.mjs`, output directory `dist`.
+
 ## Build & run
 
 ```bash
