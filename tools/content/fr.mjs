@@ -72,15 +72,15 @@ export default {
     ],
     heroCard: {
       kicker: 'VOTRE PARCOURS',
-      title: 'Vous devenez plus affûté.',
-      sub: 'Vos prochaines étapes, selon votre progression.',
-      nextFocus: 'Votre priorité',
-      recommended: 'Conseillé : obligations et responsabilité contractuelle',
-      weakSpots: 'Points faibles',
-      weakSpotsValue: 'Réviser 3 notions',
-      daily: 'Défi du jour',
-      dailyValue: 'Résoudre un cas pratique',
-      caption: 'Les chiffres de progression sont illustratifs.'
+      title: 'Commencez au niveau 0.',
+      sub: 'Votre parcours adaptatif se construit à chaque réponse.',
+      nextFocus: 'Maîtrise initiale',
+      recommended: 'Conseillé pour débuter : formation du contrat et obligations',
+      weakSpots: 'Niveau actuel',
+      weakSpotsValue: 'Niveau 0 · 0 XP',
+      daily: 'Première étape',
+      dailyValue: 'Résoudre votre premier cas',
+      caption: 'La progression démarre à 0 et évolue à chaque réponse.'
     },
     retention: {
       kicker: 'La fonction de rétention',
@@ -144,9 +144,9 @@ export default {
     stats: {
       kicker: 'En chiffres',
       items: [
-        { v: '18 400', l: 'étudiants sur un parcours' },
-        { v: '+23 %', l: 'de rétention en plus après 6 semaines' },
-        { v: '312 000', l: 'exercices adaptatifs servis' },
+        { v: 'Niveau 0', l: 'point de départ vierge pour chaque étudiant' },
+        { v: '8', l: 'matières juridiques au programme' },
+        { v: '19', l: 'exercices juridiques adaptatifs' },
         { v: '3', l: 'langues d\u2019interface, RTL incluse' }
       ]
     },
@@ -159,15 +159,6 @@ export default {
         { t: 'Application', d: 'Cas pratiques : appliquer la règle à des faits et défendre votre réponse.' },
         { t: 'Rétention', d: 'Révisions espacées qui maintiennent tout le programme vivant jusqu\u2019à l\u2019examen.' },
         { t: 'Préparation examen', d: 'Sujets blancs notés à partir de votre historique de points faibles.' }
-      ]
-    },
-    voices: {
-      kicker: 'Étudiants',
-      title: 'Ce que le parcours change.',
-      items: [
-        { q: 'J\u2019ai arrêté de relire des chapitres que je connaissais. Mes points faibles ont enfin eu mes soirées.', n: 'Yasmine B.', r: 'L3, droit des affaires' },
-        { q: 'Le calendrier de révision, c\u2019est tout le produit. Rien de ce que j\u2019ai étudié en octobre n\u2019a disparu en janvier.', n: 'Marc L.', r: 'Master 1, droit commercial' },
-        { q: 'Le tuteur explique la même règle de trois façons jusqu\u2019à ce que ça clique, en français ou en arabe.', n: 'Salma K.', r: 'L2, droit privé' }
       ]
     },
     tutor: {
@@ -305,9 +296,9 @@ export default {
     planItem2: 'Un cas pratique de droit commercial',
     planItem3: 'Défi du jour : droit du travail',
     planDone: 'fait',
-    reset: 'Réinitialiser la démo',
-    resetConfirm: 'Réinitialiser la progression et repartir d\u2019un diagnostic vierge ?',
-    sampleNote: 'Données de démo — la progression reste dans votre navigateur.',
+    reset: 'Réinitialiser la progression',
+    resetConfirm: 'Réinitialiser votre progression et repartir du niveau 0 ?',
+    sampleNote: 'La progression démarre au niveau 0 et reste dans votre navigateur.',
     continueBtn: 'Reprendre la séance',
     examCountdown: 'Examen final',
     examIn: '{n} jours',
@@ -489,7 +480,7 @@ export default {
       onRoll: 'Vous avez réussi les {n} dernières, donc celle-ci est plus dure.',
       needsWork: '{topic} est signalé comme point faible : {n} % de maîtrise.',
       almost: 'Presque — {n} % de maîtrise sur {topic}.',
-      fresh: 'Parce que {topic} est le chapitre le plus ancien que vous n\u2019avez pas révisé.'
+      fresh: 'Parce que vous n\u2019avez pas encore travaillé {topic} — commencez ici.'
     },
     feedback: {
       masteryUp: 'Maîtrise +{n}',
@@ -511,7 +502,7 @@ export default {
       nightOwl: 'Oiseau de nuit',
       diagnostic: 'Diagnostic terminé'
     },
-    toast: { reset: 'Démo réinitialisée.', saved: 'Progression enregistrée localement.' },
+    toast: { reset: 'Progression remise au niveau 0.', saved: 'Progression enregistrée localement.' },
     status: { weak: 'Faible', solid: 'Correct', strong: 'Solide' }
   },
 

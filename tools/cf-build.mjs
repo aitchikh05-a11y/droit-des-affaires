@@ -61,19 +61,24 @@ function copyTree(from, to) {
 }
 copyTree(ROOT, DIST);
 
-/* ---------- 2. Cloudflare _headers ---------- */
+/* ---------- 2. Cloudflare _headers (Military-Grade Security Profile) ---------- */
 const HEADERS = `# ============================================================
-# JurisMind — Cloudflare headers
+# JurisMind — Cloudflare Military-Grade Security Headers
 # https://developers.cloudflare.com/workers/static-assets/headers/
 # ============================================================
 
 /*
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   X-Frame-Options: SAMEORIGIN
+  X-XSS-Protection: 0
+  X-DNS-Prefetch-Control: off
+  X-Permitted-Cross-Domain-Policies: none
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
+  Permissions-Policy: accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=()
   Cross-Origin-Opener-Policy: same-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'self'
+  Cross-Origin-Resource-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com; connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com; object-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests
 
 # Long-lived caching for the fingerprinted assets (?v=xxxxxxxx from tools/build.mjs)
 /assets/*
@@ -194,6 +199,11 @@ function writeExtras(siteUrl) {
     ]
   };
   writeFileSync(join(DIST, "site.webmanifest"), JSON.stringify(manifest, null, 2) + "\n");
+  mkdirSync(join(DIST, ".well-known"), { recursive: true });
+  writeFileSync(
+    join(DIST, ".well-known/security.txt"),
+    `Contact: mailto:security@droit-des-affaires-dqt.pages.dev\nCanonical: ${siteUrl}/.well-known/security.txt\nPreferred-Languages: en, fr, ar\nExpires: 2027-12-31T23:59:59.000Z\n`
+  );
 }
 
 /* ---------- 6. .assetsignore (keeps non-web files out of a direct upload) ---------- */
@@ -215,7 +225,7 @@ writeFileSync(join(DIST, "_headers"), HEADERS);
 writeFileSync(join(DIST, "_redirects"), REDIRECTS);
 writeFileSync(join(DIST, "404.html"), page404());
 writeFileSync(join(ROOT, ".assetsignore"), ASSETSIGNORE);
-const siteUrl = (process.env.SITE_URL || "https://jurismind.pages.dev").replace(/\/+$/, "");
+const siteUrl = (process.env.SITE_URL || "https://droit-des-affaires-dqt.pages.dev").replace(/\/+$/, "");
 writeExtras(siteUrl);
 
 console.log(

@@ -33,9 +33,8 @@ typeface and its own legal vocabulary).
 | `subjects.html` | Subject library: per-topic mastery, weak topics, next reviews, exercise counts. |
 | `tutor.html` | AI tutor: keyword-matched knowledge base, three answer styles (simple / exam / case), context panel that shows the learner’s weak topics. |
 
-Demo progress lives in `localStorage` (`jurismind.state.v1`) — nothing leaves the browser.
-A seeded 30-day history makes the dashboard meaningful on first load; “Reset demo data”
-starts over.
+Progress lives in `localStorage` (`jurismind.state.v1`) — nothing leaves the browser.
+Every visitor starts from **Level 0** (`0 XP`, `0` streak, `0 %` mastery) with no pre-seeded fake data; “Reset progress” returns to Level 0 at any time.
 
 ## Language switching
 

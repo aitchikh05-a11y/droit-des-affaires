@@ -22,7 +22,8 @@
     }).join("");
   }
 
-  function statusTag(m) {
+  function statusTag(m, seen) {
+    if (seen === false) return '<span class="pill pill-outline tiny">' + JM.t("dash.never") + "</span>";
     var s = JM.status(m);
     return '<span class="status-tag status-' + s + '">' + JM.statusLabel(m) + "</span>";
   }
@@ -92,8 +93,13 @@
       var size = parseInt(el.getAttribute("data-ring-size") || "108", 10);
       el.innerHTML = JM.ringSVG(pct, size, el.getAttribute("data-ring-color") || "var(--lime)");
     });
+    var weakestId = JM.engine.weakestSubject();
+    var weakestVal = weakestId ? JM.subjectMastery(weakestId) : 0;
+    JM.$$('[data-metric="weakest"]').forEach(function (el) {
+      el.textContent = JM.NUM(weakestVal);
+    });
     JM.$$("[data-meter-fill]").forEach(function (el) {
-      el.style.width = el.getAttribute("data-meter-fill") + "%";
+      el.style.width = weakestVal + "%";
     });
 
     /* burger → mobile nav drawer */
@@ -242,6 +248,10 @@
     if (sp) {
       sp.innerHTML = JM.subjects().filter(function (x) { return JM.subjectCount(x.id) > 0; }).map(function (x) {
         var m = JM.subjectMastery(x.id);
+        var seen = x.topics.some(function (t) {
+          var st = JM.touchedTopic(x.id, t.id);
+          return st && st.seen > 0;
+        });
         var w = JM.weakTopics().filter(function (k) { return k.subject === x.id; });
         var cls = m < 60 ? "meter-coral" : m < 80 ? "meter-mint" : "meter-lime";
         var next = JM.dueList().filter(function (d) { return d.subject === x.id; })[0];
@@ -249,12 +259,14 @@
           accent: x.accent,
           title: JM.esc(x.name),
           sub: '<div class="meter meter-thin ' + cls + '" style="margin:8px 0 7px"><i style="width:' + m + '%"></i></div>' +
-            (w.length ? '<span class="muted">' + w.length + " " + JM.t("dash.weakTopic") + "</span>" : JM.t("subjectsPage.noWeak")) +
+            (!seen ? '<span class="muted">' + JM.t("dash.never") + "</span>" : w.length ? '<span class="muted">' + w.length + " " + JM.t("dash.weakTopic") + "</span>" : JM.t("subjectsPage.noWeak")) +
             (next ? " · " + JM.t("dash.dueDate") + " " + JM.dueLabel(next.days) : ""),
           side: '<div class="mono" style="font-weight:700">' + m + "%</div>" +
             '<a class="tiny link-arrow" href="subjects.html#' + x.id + '">' + JM.t("subjectsPage.topicBreakdown") + "</a>",
           pills: '<span class="pill pill-outline tiny">' + JM.t("subjectsPage.mastery") + "</span>" +
-            '<span class="pill ' + (w.length ? "pill-coral" : "pill-mint") + ' tiny">' + JM.statusLabel(m) + "</span>"
+            (!seen
+              ? '<span class="pill pill-outline tiny">' + JM.t("dash.never") + "</span>"
+              : '<span class="pill ' + (w.length ? "pill-coral" : "pill-mint") + ' tiny">' + JM.statusLabel(m) + "</span>")
         });
       }).join("");
     }
@@ -262,17 +274,21 @@
     /* milestones */
     var ms = JM.$("#milestones");
     if (ms) {
+      var hasReviews = (s.sessions || 0) > 0 && JM.dueList().length > 0 && JM.dueList().filter(function (d) { return d.days <= 0; }).length === 0;
       var stages = [
         { t: JM.t("path.diagnostic"), done: (s.sessions || 0) > 0 },
         { t: JM.t("path.lesson"), done: (s.sessions || 0) > 3 },
         { t: JM.t("path.caseLab"), done: (s.sessions || 0) > 6 },
-        { t: JM.t("path.reviewCycle"), done: true },
+        { t: JM.t("path.reviewCycle"), done: hasReviews },
         { t: JM.t("path.mockExam"), done: ready >= 70 }
       ];
+      var currentAssigned = false;
       ms.innerHTML = stages.map(function (x, i) {
+        var isCurrent = !x.done && !currentAssigned;
+        if (isCurrent) currentAssigned = true;
         return queueItem({
           title: x.t,
-          sub: x.done ? JM.t("path.done") : JM.t("path.current"),
+          sub: x.done ? JM.t("path.done") : isCurrent ? JM.t("path.current") : JM.t("path.locked"),
           side: '<span class="tiny muted">' + (i + 1) + "/5</span>" +
             '<span class="step-ic" style="width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:' +
             (x.done ? "var(--mint)" : "rgba(25,25,35,.07)") + ";color:" + (x.done ? "#06301f" : "var(--grey)") + '">' +
@@ -309,8 +325,10 @@
     if (plan) {
       var todayRec = (s.days || []).filter(function (d) { return d.date === JM.today(); })[0];
       var items = [JM.t("dash.planItem1"), JM.t("dash.planItem2"), JM.t("dash.planItem3")];
+      var doneCount = 0;
       plan.innerHTML = items.map(function (t, i) {
-        var done = i === 0 && todayRec && todayRec.minutes > 10;
+        var done = !!(todayRec && ((i === 0 && todayRec.total >= 3) || (i === 1 && todayRec.total >= 5) || (i === 2 && (s.sessions || 0) >= 2)));
+        if (done) doneCount++;
         return (
           '<div class="queue-item">' +
             '<span style="width:22px;height:22px;border-radius:7px;flex:none;display:grid;place-items:center;background:' +
@@ -322,6 +340,7 @@
           "</div>"
         );
       }).join("");
+      JM.$$("[data-plan-count]").forEach(function (el) { el.textContent = doneCount + "/" + items.length; });
     }
 
     /* review stats tiles */
@@ -378,12 +397,12 @@
       },
       {
         key: "retention",
-        steps: (due.length ? due.slice(0, 3) : [{ name: JM.t("path.reviewCycle"), days: 7, m: readiness, topic: null }])
+        steps: (due.length ? due.slice(0, 3) : [{ name: JM.t("path.reviewCycle"), days: null, m: readiness, topic: null }])
           .map(function (d) {
             return {
               type: "review", name: d.name, topic: d.topic, mastery: d.m,
-              when: JM.dueLabel(d.days),
-              state: d.days <= 0 ? "current" : "done"
+              when: d.days != null ? JM.dueLabel(d.days) : "",
+              state: d.days == null ? "locked" : d.days <= 0 ? "current" : "done"
             };
           })
       },
@@ -424,7 +443,7 @@
               "</div>" +
             "</div>" +
             '<span class="pill ' + (allDone ? "pill-mint" : "pill-outline") + '">' +
-              (allDone ? JM.t("path.done") : JM.t("path.current")) + "</span>" +
+              (allDone ? JM.t("path.done") : locked ? JM.t("path.locked") : JM.t("path.current")) + "</span>" +
           "</div>" +
           '<div class="stage-track">' +
             st.steps.map(function (x) {
@@ -531,8 +550,10 @@
      ============================================================ */
   pages.practice = function () {
     var params = new URLSearchParams(location.search);
-    var startSubject = params.get("subject");
-    var startTopic = params.get("topic");
+    var rawSubject = params.get("subject");
+    var rawTopic = params.get("topic");
+    var startSubject = JM.security && JM.security.validSubjectId(rawSubject) ? rawSubject : null;
+    var startTopic = startSubject && JM.security && JM.security.validTopicId(startSubject, rawTopic) ? rawTopic : null;
     var setup = JM.$("#setup");
     var sessionHost = JM.$("#session");
     var timerEl = JM.$("[data-timer]");
@@ -808,7 +829,7 @@
               ? '<div class="meter meter-thin ' + cls + '"><i style="width:' + Math.round(val) + '%"></i></div>'
               : '<div class="center"><span class="pill pill-outline tiny">' + JM.t("subjectsPage.soonNote") + "</span></div>") +
             (hasQ
-              ? '<div class="row-flex" style="justify-content:flex-end;gap:8px">' + statusTag(val) +
+              ? '<div class="row-flex" style="justify-content:flex-end;gap:8px">' + statusTag(val, !!(st && st.seen)) +
                 practiceLink(s.id, t.id, JM.t("dash.startExercise"), "btn-ghost") + "</div>"
               : '<div class="center"><span class="pill tiny">' + JM.t("subjectsPage.soon") + "</span></div>") +
           "</div>"
@@ -873,6 +894,12 @@
       var host = JM.$("#tutor-context");
       if (!host) return;
       var weak = JM.weakTopics(3);
+      var sessions = JM.state().sessions || 0;
+      var pathStage = sessions === 0
+        ? JM.t("path.diagnostic") + " → " + JM.t("path.foundations")
+        : sessions <= 3
+        ? JM.t("path.foundations") + " → " + JM.t("path.caseLab")
+        : JM.t("path.caseLab") + " → " + JM.t("path.reviewCycle");
       host.innerHTML =
         '<div class="card-title">' + JM.t("tutor.contextTitle") + "</div>" +
         '<p class="card-sub mb-2">' + JM.t("tutor.contextSub") + "</p>" +
@@ -885,7 +912,7 @@
             : '<span class="muted small">' + JM.t("subjectsPage.noWeak") + "</span>") +
         "</div>" +
         '<div class="kicker mb-0">' + JM.t("tutor.ctxPath") + "</div>" +
-        '<p class="small mb-2">' + JM.t("path.caseLab") + " → " + JM.t("path.reviewCycle") + "</p>" +
+        '<p class="small mb-2">' + pathStage + "</p>" +
         '<div class="kicker mb-0">' + JM.t("tutor.ctxLang") + "</div>" +
         '<p class="small mb-0">' + JM.C.label + " · " + JM.C.dir.toUpperCase() + "</p>";
       JM.$$("[data-ask]", host).forEach(function (b) {
@@ -940,14 +967,16 @@
     }
 
     function ask(text) {
-      if (!text || !text.trim()) return;
-      push("me", "<p>" + JM.esc(text) + "</p>");
+      var clean = JM.sanitizeText ? JM.sanitizeText(text, 500) : String(text || "").trim().slice(0, 500);
+      if (!clean) return;
+      if (JM.security && !JM.security.rateLimit("tutor-ask", 10, 15000)) return;
+      push("me", "<p>" + JM.esc(clean) + "</p>");
       if (input) { input.value = ""; input.style.height = "auto"; }
       var thinking = push("tutor",
         '<span class="typing"><i></i><i></i><i></i></span> <span class="small muted">' + JM.t("tutor.thinking") + "</span>");
       setTimeout(function () {
         var body = thinking.querySelector(".msg-body");
-        body.innerHTML = '<div class="msg-name">' + JM.t("tutor.tutor") + "</div>" + answerFor(text) +
+        body.innerHTML = '<div class="msg-name">' + JM.t("tutor.tutor") + "</div>" + answerFor(clean) +
           '<p class="tiny muted" style="margin:8px 0 0">' + JM.t("tutor.disclaimer") + "</p>";
         chat.scrollTop = chat.scrollHeight;
       }, 650);

@@ -72,15 +72,15 @@ export default {
     ],
     heroCard: {
       kicker: 'YOUR LEARNING PATH',
-      title: "You're getting sharper.",
-      sub: 'Your next steps, based on your progress.',
-      nextFocus: 'Your next focus',
-      recommended: 'Recommended: obligations and contractual liability',
-      weakSpots: 'Weak spots',
-      weakSpotsValue: 'Review 3 concepts',
-      daily: 'Daily challenge',
-      dailyValue: 'Solve one legal case',
-      caption: 'Sample progress figures are illustrative.'
+      title: 'Start from level 0.',
+      sub: 'Your adaptive path builds as you answer.',
+      nextFocus: 'Starting mastery',
+      recommended: 'Recommended first: obligations and contract formation',
+      weakSpots: 'Current level',
+      weakSpotsValue: 'Level 0 · 0 XP',
+      daily: 'First step',
+      dailyValue: 'Solve your first case',
+      caption: 'Progress starts at 0 and updates with every answer.'
     },
     retention: {
       kicker: 'The retention feature',
@@ -144,9 +144,9 @@ export default {
     stats: {
       kicker: 'By the numbers',
       items: [
-        { v: '18 400', l: 'students on a learning path' },
-        { v: '+23%', l: 'average retention gain after 6 weeks' },
-        { v: '312 000', l: 'adaptive exercises served' },
+        { v: 'Level 0', l: 'clean starting point for every student' },
+        { v: '8', l: 'law subjects in the curriculum' },
+        { v: '19', l: 'adaptive legal exercises' },
         { v: '3', l: 'interface languages, RTL included' }
       ]
     },
@@ -159,15 +159,6 @@ export default {
         { t: 'Application', d: 'Case labs: apply the rule to a fact pattern and defend your answer.' },
         { t: 'Retention', d: 'Spaced reviews that keep the whole syllabus alive until exam day.' },
         { t: 'Exam readiness', d: 'Mock papers scored against your weak-topic history.' }
-      ]
-    },
-    voices: {
-      kicker: 'Students',
-      title: 'What the path changes.',
-      items: [
-        { q: 'I stopped rereading chapters I already knew. My weak topics finally got my evenings.', n: 'Yasmine B.', r: '3rd year, business law' },
-        { q: 'The review calendar is the whole product. Nothing I studied in October is gone in January.', n: 'Marc L.', r: 'Master 1, commercial law' },
-        { q: 'The tutor explains the same rule three different ways until it clicks, in French or Arabic.', n: 'Salma K.', r: '2nd year, private law' }
       ]
     },
     tutor: {
@@ -306,9 +297,9 @@ export default {
     planItem2: 'One case lab on commercial law',
     planItem3: 'Daily challenge: labour law',
     planDone: 'done',
-    reset: 'Reset demo data',
-    resetConfirm: 'Reset the demo progress and start from a fresh diagnostic?',
-    sampleNote: 'Demo data — progress is stored in your browser only.',
+    reset: 'Reset progress',
+    resetConfirm: 'Reset your progress and start over from level 0?',
+    sampleNote: 'Progress starts at level 0 and is stored locally in your browser.',
     continueBtn: 'Continue the session',
     examCountdown: 'Final exam',
     examIn: '{n} days',
@@ -496,7 +487,7 @@ export default {
       onRoll: 'You got the last {n} right, so this one is harder.',
       needsWork: '{topic} is flagged as a weak spot: {n}% mastery.',
       almost: 'Almost there — {n}% mastery on {topic}.',
-      fresh: 'Because {topic} is the oldest topic you have not reviewed.'
+      fresh: 'Because you have not practised {topic} yet — start here.'
     },
     feedback: {
       masteryUp: 'Mastery +{n}',
@@ -518,7 +509,7 @@ export default {
       nightOwl: 'Night owl',
       diagnostic: 'Diagnostic done'
     },
-    toast: { reset: 'Demo data reset.', saved: 'Progress saved locally.' },
+    toast: { reset: 'Progress reset to level 0.', saved: 'Progress saved locally.' },
     status: { weak: 'Weak', solid: 'Solid', strong: 'Strong' }
   },
 

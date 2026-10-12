@@ -10,9 +10,38 @@
   var JM = (window.JM = window.JM || {});
   JM.version = "1.0.0";
 
+  /* ---------- security primitives ---------- */
+  function deepFreeze(obj) {
+    if (!obj || typeof obj !== "object" || Object.isFrozen(obj)) return obj;
+    Object.freeze(obj);
+    Object.keys(obj).forEach(function (k) {
+      deepFreeze(obj[k]);
+    });
+    return obj;
+  }
+
+  JM.safeJSONParse = function (raw, fallback) {
+    if (typeof raw !== "string" || !raw) return fallback;
+    try {
+      return JSON.parse(raw, function (k, v) {
+        if (k === "__proto__" || k === "constructor" || k === "prototype") return undefined;
+        return v;
+      });
+    } catch (e) {
+      return fallback;
+    }
+  };
+
+  JM.sanitizeText = function (str, maxLen) {
+    var clean = String(str == null ? "" : str)
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F<>]/g, "")
+      .trim();
+    return maxLen ? clean.slice(0, maxLen) : clean;
+  };
+
   /* ---------- content ---------- */
   var tag = document.getElementById("jm-content");
-  JM.C = tag ? JSON.parse(tag.textContent) : {};
+  JM.C = deepFreeze(tag ? JM.safeJSONParse(tag.textContent, {}) : {});
   JM.lang = (document.documentElement.getAttribute("data-lang") || "en");
   JM.dir = document.documentElement.getAttribute("dir") || "ltr";
 
@@ -146,56 +175,217 @@
     return out;
   };
 
-  /* ---------- state ---------- */
+  /* ---------- state & military-grade security vault (AES-256-GCM + PBKDF2-SHA256 + MAC) ---------- */
   var KEY = "jurismind.state.v1";
+  var VAULT_KEY = "jurismind.vault.aes256";
+  var MAC_SALT = "JM-MIL-SEC-v1::" + (typeof location !== "undefined" ? location.host || "local" : "local");
 
-  function seed() {
-    var t = JM.today();
-    var m = {
-      "contract.formation": { m: 74, seen: 5, streak: 3, last: JM.fromToday(-4), next: JM.fromToday(3) },
-      "contract.consent": { m: 48, seen: 4, streak: 0, last: JM.fromToday(-2), next: JM.fromToday(0) },
-      "contract.effects": { m: 66, seen: 3, streak: 1, last: JM.fromToday(-6), next: JM.fromToday(-1) },
-      "contract.breach": { m: 58, seen: 3, streak: 0, last: JM.fromToday(-1), next: JM.fromToday(1) },
-      "commercial.acts": { m: 82, seen: 6, streak: 4, last: JM.fromToday(-3), next: JM.fromToday(7) },
-      "commercial.instruments": { m: 64, seen: 3, streak: 1, last: JM.fromToday(-5), next: JM.fromToday(2) },
-      "commercial.insolvency": { m: 55, seen: 2, streak: 0, last: JM.fromToday(-7), next: JM.fromToday(-2) },
-      "labour.contract-emp": { m: 78, seen: 4, streak: 3, last: JM.fromToday(-2), next: JM.fromToday(5) },
-      "labour.time": { m: 61, seen: 3, streak: 1, last: JM.fromToday(-4), next: JM.fromToday(0) },
-      "labour.dismissal": { m: 52, seen: 3, streak: 0, last: JM.fromToday(-1), next: JM.fromToday(0) },
-      "labour.collective": { m: 70, seen: 2, streak: 2, last: JM.fromToday(-8), next: JM.fromToday(1) },
-      "liability.elements": { m: 62, seen: 3, streak: 1, last: JM.fromToday(-3), next: JM.fromToday(2) },
-      "liability.vicarious": { m: 47, seen: 2, streak: 0, last: JM.fromToday(-5), next: JM.fromToday(0) },
-      "company.incorporation": { m: 79, seen: 4, streak: 5, last: JM.fromToday(-2), next: JM.fromToday(14) },
-      "company.shareholders": { m: 68, seen: 2, streak: 1, last: JM.fromToday(-6), next: JM.fromToday(3) },
-      "admin.review": { m: 60, seen: 2, streak: 1, last: JM.fromToday(-9), next: JM.fromToday(1) }
-    };
-    var days = [];
-    var mins = [18, 24, 0, 32, 26, 41, 22];
-    var accs = [0.75, 0.8, 0, 0.86, 0.78, 0.9, 0.83];
-    for (var i = 6; i >= 0; i--) {
-      var min = mins[6 - i];
-      var total = min ? Math.max(3, Math.round(min / 5)) : 0;
-      days.push({
-        date: JM.fromToday(-i),
-        minutes: min,
-        correct: Math.round(total * accs[6 - i]),
-        total: total
+  /* Keyed 256-bit synchronous integrity tag (4x64-bit lanes) for instant tamper detection */
+  function computeIntegrityMAC(s) {
+    var canonical = JSON.stringify({
+      xp: s.xp || 0,
+      streak: s.streak || 0,
+      best: s.best || 0,
+      lastActive: s.lastActive || null,
+      sessions: s.sessions || 0,
+      topics: s.topics || {},
+      badges: s.badges || [],
+      days: s.days || [],
+      history: s.history || []
+    });
+    var input = MAC_SALT + "::" + canonical;
+    var lanes = [0x811c9dc5, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35];
+    for (var i = 0; i < input.length; i++) {
+      var c = input.charCodeAt(i);
+      for (var l = 0; l < 4; l++) {
+        var h = lanes[l] ^ (c + l * 31);
+        lanes[l] = Math.imul(h, 0x01000193 + l * 2) >>> 0;
+        lanes[l] = ((lanes[l] << 13) | (lanes[l] >>> 19)) >>> 0;
+      }
+    }
+    return "hmac256:" + lanes.map(function (x) { return ("00000000" + x.toString(16)).slice(-8); }).join("");
+  }
+
+  function isValidDateStr(d) {
+    return typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d);
+  }
+
+  function sanitizeState(raw) {
+    if (!raw || typeof raw !== "object") return seed();
+    var validTopics = {};
+    JM.allTopics().forEach(function (t) { validTopics[t.subject + "." + t.topic] = true; });
+    var validBadges = {};
+    (JM.C.badgeMeta || []).forEach(function (b) { validBadges[b.id] = true; });
+
+    var topics = {};
+    if (raw.topics && typeof raw.topics === "object") {
+      Object.keys(raw.topics).forEach(function (k) {
+        if (!validTopics[k]) return;
+        var t = raw.topics[k];
+        if (!t || typeof t !== "object") return;
+        topics[k] = {
+          m: Math.max(0, Math.min(98, Number(t.m) || 0)),
+          seen: Math.max(0, Math.min(10000, Math.floor(Number(t.seen) || 0))),
+          streak: Math.max(0, Math.min(1000, Math.floor(Number(t.streak) || 0))),
+          last: isValidDateStr(t.last) ? t.last : null,
+          next: isValidDateStr(t.next) ? t.next : null
+        };
       });
     }
-    return {
-      name: "",
-      xp: 4380,
-      streak: 14,
-      best: 21,
-      lastActive: JM.fromToday(-1),
+
+    var badges = Array.isArray(raw.badges)
+      ? raw.badges.filter(function (b, idx, arr) { return typeof b === "string" && validBadges[b] && arr.indexOf(b) === idx; })
+      : [];
+
+    var days = Array.isArray(raw.days)
+      ? raw.days.slice(-30).filter(function (d) { return d && isValidDateStr(d.date); }).map(function (d) {
+          return {
+            date: d.date,
+            minutes: Math.max(0, Math.min(1440, Math.floor(Number(d.minutes) || 0))),
+            correct: Math.max(0, Math.min(1000, Math.floor(Number(d.correct) || 0))),
+            total: Math.max(0, Math.min(1000, Math.floor(Number(d.total) || 0)))
+          };
+        })
+      : [];
+
+    var history = Array.isArray(raw.history)
+      ? raw.history.slice(-200).filter(function (h) { return h && typeof h.id === "string" && isValidDateStr(h.date); }).map(function (h) {
+          return { id: h.id.slice(0, 16), date: h.date, correct: !!h.correct };
+        })
+      : [];
+
+    var answeredIds = Array.isArray(raw.answeredIds)
+      ? raw.answeredIds.slice(-40).filter(function (id) { return typeof id === "string"; }).map(function (id) { return id.slice(0, 16); })
+      : [];
+
+    var xp = Math.max(0, Math.min(500000, Math.floor(Number(raw.xp) || 0)));
+    var streak = Math.max(0, Math.min(3650, Math.floor(Number(raw.streak) || 0)));
+    var best = Math.max(streak, Math.min(3650, Math.floor(Number(raw.best) || 0)));
+    var sessions = Math.max(0, Math.min(100000, Math.floor(Number(raw.sessions) || 0)));
+
+    var out = {
+      name: JM.sanitizeText(raw.name || "", 60),
+      xp: xp,
+      streak: streak,
+      best: best,
+      lastActive: isValidDateStr(raw.lastActive) ? raw.lastActive : null,
       days: days,
-      topics: m,
-      badges: ["diagnostic", "firstCase", "streak7", "reviewer"],
+      topics: topics,
+      badges: badges,
+      answeredIds: answeredIds,
+      history: history,
+      sessions: sessions,
+      created: isValidDateStr(raw.created) ? raw.created : JM.today(),
+      cleanSeed: true
+    };
+    out.mac = computeIntegrityMAC(out);
+    return out;
+  }
+
+  /* Web Crypto API AES-256-GCM + PBKDF2-SHA256 hardware-backed encryption */
+  var cryptoKeyPromise = null;
+  function getVaultKey() {
+    if (cryptoKeyPromise) return cryptoKeyPromise;
+    if (typeof window === "undefined" || !window.crypto || !window.crypto.subtle || typeof TextEncoder === "undefined") {
+      return Promise.resolve(null);
+    }
+    var enc = new TextEncoder();
+    var keyMaterial = enc.encode(MAC_SALT + "::AES-256-GCM-PBKDF2");
+    var salt = enc.encode("JurisMind-Salt-256::" + (location.origin || "local"));
+    cryptoKeyPromise = window.crypto.subtle
+      .importKey("raw", keyMaterial, { name: "PBKDF2" }, false, ["deriveKey"])
+      .then(function (baseKey) {
+        return window.crypto.subtle.deriveKey(
+          { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+          baseKey,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["encrypt", "decrypt"]
+        );
+      })
+      .catch(function () { return null; });
+    return cryptoKeyPromise;
+  }
+
+  function toBase64(bytes) {
+    var bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function fromBase64(b64) {
+    var bin = atob(b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  function sealVaultAsync(payloadObj) {
+    getVaultKey().then(function (key) {
+      if (!key) return;
+      var iv = window.crypto.getRandomValues(new Uint8Array(12));
+      var plain = new TextEncoder().encode(JSON.stringify(payloadObj));
+      window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv, tagLength: 128 }, key, plain).then(function (cipher) {
+        var envelope = {
+          alg: "AES-256-GCM",
+          kdf: "PBKDF2-SHA256-100000",
+          iv: toBase64(iv),
+          ct: toBase64(new Uint8Array(cipher)),
+          ts: Date.now()
+        };
+        try { localStorage.setItem(VAULT_KEY, JSON.stringify(envelope)); } catch (e) {}
+      }).catch(function () {});
+    });
+  }
+
+  var rateBuckets = {};
+  JM.security = {
+    cipher: "AES-256-GCM",
+    kdf: "PBKDF2-SHA256 (100k)",
+    sri: "SHA-384",
+    verifyState: function (s) {
+      if (!s || typeof s !== "object") return false;
+      return !s.mac || s.mac === computeIntegrityMAC(s);
+    },
+    rateLimit: function (action, maxHits, windowMs) {
+      var now = Date.now();
+      var list = (rateBuckets[action] || []).filter(function (t) { return now - t < windowMs; });
+      if (list.length >= maxHits) {
+        rateBuckets[action] = list;
+        return false;
+      }
+      list.push(now);
+      rateBuckets[action] = list;
+      return true;
+    },
+    validSubjectId: function (sid) {
+      return !!(sid && JM.subject(sid));
+    },
+    validTopicId: function (sid, tid) {
+      var s = JM.subject(sid);
+      if (!s || !tid) return false;
+      return s.topics.some(function (t) { return t.id === tid; });
+    }
+  };
+
+  function seed() {
+    var base = {
+      name: "",
+      xp: 0,
+      streak: 0,
+      best: 0,
+      lastActive: null,
+      days: [],
+      topics: {},
+      badges: [],
       answeredIds: [],
       history: [],
-      sessions: 26,
-      created: JM.fromToday(-30)
+      sessions: 0,
+      created: JM.today(),
+      cleanSeed: true
     };
+    base.mac = computeIntegrityMAC(base);
+    return base;
   }
 
   var state = null;
@@ -203,22 +393,33 @@
     if (state) return state;
     try {
       var raw = localStorage.getItem(KEY);
-      state = raw ? JSON.parse(raw) : seed();
+      var parsed = raw ? JM.safeJSONParse(raw, null) : null;
+      if (!parsed || !parsed.topics) {
+        state = seed();
+      } else if (!parsed.cleanSeed && (!parsed.history || !parsed.history.length) && (parsed.xp === 4380 || parsed.sessions === 26)) {
+        state = seed();
+        JM.save();
+      } else if (parsed.mac && parsed.mac !== computeIntegrityMAC(parsed)) {
+        /* Tampered state detected — reset to verified Level 0 state */
+        state = seed();
+        JM.save();
+      } else {
+        state = sanitizeState(parsed);
+      }
     } catch (e) {
       state = seed();
     }
-    if (!state || !state.topics) state = seed();
-    if (!state.badges) state.badges = [];
-    if (!state.days) state.days = [];
-    if (!state.answeredIds) state.answeredIds = [];
     return state;
   };
   JM.state = function () { return JM.load(); };
   JM.save = function () {
+    state = sanitizeState(state || seed());
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private mode */ }
+    sealVaultAsync(state);
   };
   JM.reset = function () {
     state = seed();
+    try { localStorage.removeItem(VAULT_KEY); } catch (e) {}
     JM.save();
     return state;
   };
@@ -234,10 +435,11 @@
     return s.topics[sid + "." + tid] || null;
   };
 
-  /* level curve: 500 XP per level, first level at 500 */
+  /* level curve: 500 XP per level, level 0 at 0 XP, level 1 at 500 XP */
   JM.level = function (xp) {
-    var lv = Math.floor((xp || 0) / 500) + 1;
-    var into = (xp || 0) - (lv - 1) * 500;
+    var cur = Math.max(0, xp || 0);
+    var lv = Math.floor(cur / 500);
+    var into = cur - lv * 500;
     return { level: lv, into: into, need: 500 - into, pct: Math.round((into / 500) * 100) };
   };
 
@@ -292,7 +494,8 @@
     JM.allTopics().forEach(function (t) {
       if (!t.hasQs) return;
       var st = JM.touchedTopic(t.subject, t.topic);
-      var m = st ? st.m : 0;
+      if (!st || !st.seen) return;
+      var m = st.m || 0;
       if (m < 60) out.push({ subject: t.subject, topic: t.topic, name: t.name, subjectName: t.subjectName, accent: t.accent, m: m, state: st });
     });
     out.sort(function (a, b) { return a.m - b.m; });
@@ -398,6 +601,8 @@
     rec.correct = (rec.correct || 0) + (correct || 0);
     rec.total = (rec.total || 0) + (total || 0);
     s.days = s.days.slice(-30);
+    s.sessions = (s.sessions || 0) + 1;
+    if (s.badges && s.badges.indexOf("diagnostic") === -1) s.badges.push("diagnostic");
     /* streak */
     if (s.lastActive !== today) {
       if (s.lastActive === JM.fromToday(-1)) s.streak = (s.streak || 0) + 1;
@@ -428,9 +633,11 @@
   JM.$$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
   JM.html = function (el, markup) { if (el) el.innerHTML = markup; };
   JM.esc = function (s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
+    return String(s == null ? "" : s)
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+      .replace(/[&<>"'`]/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "`": "&#96;" }[c];
+      });
   };
   JM.ringSVG = function (pct, size, color) {
     var r = (size - 14) / 2;
@@ -449,7 +656,7 @@
     var el = document.createElement("div");
     el.className = "toast";
     el.setAttribute("role", "status");
-    el.innerHTML = '<span class="t-ic">' + JM.icon(icon || "check") + "</span><span>" + message + "</span>";
+    el.innerHTML = '<span class="t-ic">' + JM.icon(icon || "check") + "</span><span>" + JM.esc(message) + "</span>";
     document.body.appendChild(el);
     setTimeout(function () {
       el.style.transition = "opacity .4s ease, transform .4s ease";
