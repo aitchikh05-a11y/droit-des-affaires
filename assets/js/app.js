@@ -554,65 +554,76 @@
     var picks = JM.$$("[data-langpick]");
     if (!picks.length) return;
 
+    /* The button is a native <details>/<summary>, so opening and closing the list
+       of languages works without any of this. The script only adds the nice
+       touches: one open at a time, closing on an outside click or Escape,
+       opening upwards near the bottom of the page, and remembering the choice. */
     function close(pick) {
-      pick.classList.remove("open");
-      var b = JM.$(".lang-btn", pick);
-      var m = JM.$(".lang-menu", pick);
-      if (b) b.setAttribute("aria-expanded", "false");
-      if (m) m.hidden = true;
+      if (pick.open) pick.open = false;
+      pick.classList.remove("drop-up", "open");
     }
-    function open(pick) {
-      picks.forEach(function (p) { if (p !== pick) close(p); });
-      var btn = JM.$(".lang-btn", pick);
-      /* flip upwards when there is more room above (footer, bottom of the page) */
-      if (btn) {
-        var r = btn.getBoundingClientRect();
-        var below = (window.innerHeight || 0) - r.bottom;
-        pick.classList.toggle("drop-up", below < 260 && r.top > below && r.top > 0);
-      }
-      pick.classList.add("open");
-      var b = JM.$(".lang-btn", pick);
-      var m = JM.$(".lang-menu", pick);
-      if (b) b.setAttribute("aria-expanded", "true");
-      if (m) m.hidden = false;
+    function closeAll(except) {
+      picks.forEach(function (p) { if (p !== except) close(p); });
     }
 
     picks.forEach(function (pick) {
-      var btn = JM.$(".lang-btn", pick);
       var menu = JM.$(".lang-menu", pick);
-      if (!btn || !menu) return;
 
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        if (pick.classList.contains("open")) close(pick); else open(pick);
-      });
-
-      /* remember the choice immediately, before the page navigates */
+      /* remember the choice and keep the current view (query + hash) */
       JM.$$("[data-lang-option]", menu).forEach(function (a) {
         var code = a.getAttribute("data-lang-option");
-        /* keep the current query (which exercise, which subject…) minus ?lang */
         var extra = location.search
           .replace(/^\?/, "")
           .split("&")
-          .filter(function (kv) {
-            return kv && kv.split("=")[0] !== "lang";
-          });
+          .filter(function (kv) { return kv && kv.split("=")[0] !== "lang"; });
         try {
-          a.setAttribute("href", JM.langHref(code) + "?lang=" + code + (extra.length ? "&" + extra.join("&") : "") + location.hash);
+          a.setAttribute("href", JM.langHref(code) + "?lang=" + code +
+            (extra.length ? "&" + extra.join("&") : "") + location.hash);
         } catch (e) { /* keep the static href */ }
         a.addEventListener("click", function () { JM.setLangPref(code); });
       });
 
+      /* flip the menu upwards when there is more room above (footer).
+         The native <details> toggle event is queued as a task, so we decide
+         the direction synchronously on click to avoid a one-frame jump. */
+      function place(pick) {
+        var btn = JM.$(".lang-btn", pick);
+        if (!btn || !btn.getBoundingClientRect) return;
+        var r = btn.getBoundingClientRect();
+        var below = (window.innerHeight || 0) - r.bottom;
+        pick.classList.toggle("drop-up", below < 280 && r.top > below && r.top > 0);
+      }
+
+      var summary = JM.$(".lang-btn", pick);
+      if (summary) {
+        summary.addEventListener("click", function () {
+          place(pick);
+          closeAll(pick);
+        });
+      }
+
+      pick.addEventListener("toggle", function () {
+        if (!pick.open) { pick.classList.remove("drop-up"); return; }
+        if (!pick.classList.contains("drop-up")) place(pick);
+        closeAll(pick);
+      });
+
       pick.addEventListener("keydown", function (e) {
-        if (e.key === "Escape") { close(pick); btn.focus(); }
+        if (e.key === "Escape") {
+          close(pick);
+          var btn = JM.$(".lang-btn", pick);
+          if (btn) btn.focus();
+        }
       });
     });
 
-    document.addEventListener("click", function () {
-      picks.forEach(close);
+    /* click outside (or on another picker's button) closes everything */
+    document.addEventListener("click", function (e) {
+      var inside = e.target && e.target.closest && e.target.closest("[data-langpick]");
+      closeAll(inside || null);
     });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") picks.forEach(close);
+      if (e.key === "Escape") closeAll(null);
     });
   };
 

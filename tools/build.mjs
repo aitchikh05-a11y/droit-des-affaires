@@ -6,7 +6,8 @@
    No dependencies, no runtime HTML: the site is plain static files,
    the language dictionary is embedded as JSON and read by app.js.
    ============================================================ */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -67,6 +68,22 @@ const ICONS = {
   chevron: '<path d="m6 9 6 6 6-6"/>'
 };
 
+/* ---------- languages: flags (inline SVG: crisp on every OS) ---------- */
+const FLAGS = {
+  /* Union Jack, simplified for a 20x13 badge */
+  en: `<rect width="24" height="16" fill="#012169"/>
+    <path d="M0 0 24 16M24 0 0 16" stroke="#fff" stroke-width="3.4"/>
+    <path d="M0 0 24 16M24 0 0 16" stroke="#C8102E" stroke-width="1.7"/>
+    <path d="M12 0v16M0 8h24" stroke="#fff" stroke-width="5.2"/>
+    <path d="M12 0v16M0 8h24" stroke="#C8102E" stroke-width="3"/>`,
+  fr: `<rect width="8" height="16" fill="#002395"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#ED2939"/>`,
+  /* Morocco: red field, green pentagram — the legal context of the content */
+  ar: `<rect width="24" height="16" fill="#C1272D"/>
+    <path d="M12 3.4 14.7 11.72 7.63 6.58 16.37 6.58 9.3 11.72Z" fill="none" stroke="#006233" stroke-width="0.95" stroke-linejoin="round"/>`
+};
+const flag = (code, cls = "flag") =>
+  `<svg class="${cls}" viewBox="0 0 24 16" aria-hidden="true" focusable="false">${FLAGS[code] || ""}</svg>`;
+
 /* the landing burger toggles this panel (see pages.landing) */
 const MOBILE_NAV = (L, ctx) =>
   `<div class="mobile-nav" id="mobile-nav">${L.nav.landing
@@ -124,32 +141,34 @@ ${langGuard(L)}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="${ctx.asset("css/jurismind.css")}">`;
+<link rel="stylesheet" href="${ctx.asset("css/jurismind.css")}?v=${VER["assets/css/jurismind.css"]}">`;
 }
 
 /* ---------- shared chrome ---------- */
-/* single-button language picker: current language code + dropdown of the three */
-function langPicker(L, ctx, all, tone = "light") {
+/* single-button language picker: a native <details> disclosure, so the list of
+   languages opens even with JavaScript disabled or a stale script in cache */
+function langPicker(L, ctx, all, tone = "dark") {
   const id = `langmenu-${tone}-${L.code}-${ctx.pageFile.replace(/\W+/g, "")}`;
-  return `<div class="langpick${tone === "dark" ? " langpick-dark" : ""}" data-langpick>
-  <button type="button" class="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="${id}"
-          title="${esc(L.ctas.switchLanguage)} · اللغة · Langue"
-          aria-label="${esc(L.ctas.switchLanguage)}: ${esc(L.native)}">
-    ${icon("globe")}<span class="lang-code">${L.code.toUpperCase()}</span>
+  return `<details class="langpick${tone === "dark" ? " langpick-dark" : ""}" data-langpick>
+  <summary class="lang-btn" title="${esc(L.ctas.switchLanguage)} · اللغة · Langue"
+           aria-label="${esc(L.ctas.switchLanguage)}: ${esc(L.native)}" aria-controls="${id}">
+    ${flag(L.code)}
+    <span class="lang-code">${L.code.toUpperCase()}</span>
     <span class="chev">${icon("chevron")}</span>
-  </button>
-  <ul class="lang-menu" id="${id}" role="menu" hidden>
+  </summary>
+  <ul class="lang-menu" id="${id}" role="menu">
     ${all
       .map(
-        (X) => `<li role="none"><a role="menuitemradio" href="${ctx.langHref(X.code)}?lang=${X.code}" hreflang="${X.code}" lang="${X.code}"
-        data-lang-option="${X.code}" aria-checked="${X.code === L.code}">
-        <span>${esc(X.native)}<br><span class="lh">${X.code.toUpperCase()} · ${X.dir.toUpperCase()}</span></span>
+        (X) => `<li role="none"><a role="menuitemradio" href="${ctx.langHref(X.code)}?lang=${X.code}"
+        hreflang="${X.code}" lang="${X.code}" data-lang-option="${X.code}" aria-checked="${X.code === L.code}">
+        ${flag(X.code)}
+        <span class="lang-name">${esc(X.native)}<span class="lh">${X.code.toUpperCase()} · ${X.dir.toUpperCase()}</span></span>
         <span class="tick">${icon("check")}</span>
       </a></li>`
       )
       .join("")}
   </ul>
-</div>`;
+</details>`;
 }
 
 /* runs before the body paints: keeps the language the visitor picked on every page */
@@ -196,7 +215,7 @@ function landingHeader(L, ctx, all) {
       ${L.nav.landing.map((n) => `<a href="${n.href}">${esc(n.label)}</a>`).join("")}
     </nav>
     <div class="head-actions">
-      ${langPicker(L, ctx, all)}
+      ${langPicker(L, ctx, all, "light")}
       <a class="btn btn-ghost btn-sm hide-sm" href="${ctx.href("tutor.html")}">${esc(L.ctas.askTutor)}</a>
       <a class="btn btn-lime btn-sm hide-xs" href="${ctx.href("dashboard.html")}">${esc(L.ctas.openDashboard)}</a>
       <button class="burger" data-burger-nav aria-label="Menu">${icon("menu")}</button>
@@ -265,7 +284,7 @@ function topbar(L, ctx, page, title) {
   <div class="crumb grow"><span>JurisMind</span><span>·</span><strong>${esc(title)}</strong></div>
   <span class="pill pill-dark hide-sm">${esc(L.dash.level)} <b data-level>9</b></span>
   <span class="xp-chip hide-sm">${icon("bolt")} <span data-xp>4380</span> ${esc(L.ui.xp)}</span>
-  ${langPicker(L, ctx, LANGS)}
+  ${langPicker(L, ctx, LANGS, "light")}
   <a class="btn btn-lime btn-sm hide-xs" href="${ctx.href("practice.html")}">${esc(L.ctas.practiceNow)}</a>
 </div>`;
 }
@@ -963,12 +982,23 @@ ${head(L, ctx, page)}
 <body data-page="${page}" data-lang="${L.code}">
 ${bodyChrome}
 <script type="application/json" id="jm-content">${dict}</script>
-<script src="${ctx.asset("js/app.js")}"></script>
-<script src="${ctx.asset("js/engine.js")}"></script>
-<script src="${ctx.asset("js/pages.js")}"></script>
+<script src="${ctx.asset("js/app.js")}?v=${VER["assets/js/app.js"]}"></script>
+<script src="${ctx.asset("js/engine.js")}?v=${VER["assets/js/engine.js"]}"></script>
+<script src="${ctx.asset("js/pages.js")}?v=${VER["assets/js/pages.js"]}"></script>
 </body>
 </html>
 `;
+}
+
+/* ---------- asset fingerprints (cache busting) ---------- */
+const ASSETS = ["assets/css/jurismind.css", "assets/js/app.js", "assets/js/engine.js", "assets/js/pages.js"];
+const VER = {};
+for (const a of ASSETS) {
+  try {
+    VER[a] = createHash("sha1").update(readFileSync(join(ROOT, a))).digest("hex").slice(0, 8);
+  } catch (e) {
+    VER[a] = "1";
+  }
 }
 
 /* ---------- run ---------- */

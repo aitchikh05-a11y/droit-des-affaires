@@ -39,9 +39,12 @@ starts over.
 
 ## Language switching
 
-One button per page (globe + current code + dropdown listing English / Français / العربية
-with the active one ticked), in the landing header and footer, and in the app topbar and
-footer. The choice is stored under `jurismind.lang` and **tracked across every page**: a
+One button per page — flag + code, opening a list of English 🇬🇧 / Français 🇫🇷 /
+العربية 🇲🇦 with the active one highlighted — in the landing header and footer, and in the
+app topbar and footer. It is a native `<details>` disclosure, so the list opens even with
+JavaScript disabled; the script only adds slimmer touches (one list open at a time, close
+on outside click or Escape, flip upwards near the bottom of the page). Assets are linked
+with a content hash (`?v=…`) so a stale cached script can never hide the list again. The choice is stored under `jurismind.lang` and **tracked across every page**: a
 tiny guard script in each document's `<head>` sends the visitor to the same page in the
 remembered language before anything paints, keeping query strings (`?subject=…`) and
 hashes intact and never redirecting a first-time visitor. Deep links work too:
