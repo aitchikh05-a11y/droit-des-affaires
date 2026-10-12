@@ -409,23 +409,21 @@ function landingPage(L, ctx, all) {
         )
         .join("")}
     </div>
-    <div class="card card-dark mt-3 reveal">
+    <div class="card next-card mt-3 reveal" style="padding:26px">
       <div class="between wrap mb-2">
         <div>
-          <div class="card-title" style="color:var(--off)">${esc(H.method.nextLabel)}</div>
-          <div class="tiny" style="color:rgba(247,247,242,.55)">${esc(H.method.nextReason)}</div>
+          <div class="card-title">${icon("sparkles", "next-ic")} ${esc(H.method.nextLabel)}</div>
+          <div class="card-sub">${esc(H.method.nextReason)}</div>
         </div>
-        <span class="pill pill-lav">${icon("sparkles")} adaptive</span>
+        <span class="pill pill-lav">${icon("sparkles")} AI · adaptive</span>
       </div>
       <div id="jm-live-next"></div>
-      <div class="hairline" style="background:rgba(255,255,255,.12)"></div>
-      <p class="tiny mb-2" style="color:rgba(247,247,242,.6)">${esc(H.method.pickSubject)}</p>
+      <div class="hairline"></div>
+      <p class="tiny muted mb-2">${esc(H.method.pickSubject)}</p>
       <div class="prompt-chips">
         ${L.subjects
           .filter((s) => L.questions.some((q) => q.subject === s.id))
-          .map((s) => `<button class="chip" data-live-subject="${s.id}" style="background:transparent;color:var(--off);border-color:rgba(255,255,255,.22)">${esc(
-            s.name
-          )}</button>`)
+          .map((s) => `<button class="chip" data-live-subject="${s.id}">${esc(s.name)}</button>`)
           .join("")}
       </div>
     </div>

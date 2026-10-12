@@ -40,7 +40,7 @@
 
   /* shape & depth */
   --r-sm: 10px;
-  --r-md: 14px;
+  --r-md: 16px;
   --r-lg: 20px;
   --r-xl: 28px;
   --r-pill: 999px;
@@ -652,6 +652,35 @@ html[dir="rtl"] .ticker-track { animation-direction: reverse; }
   background: rgba(25, 25, 35, 0.07); font-family: var(--font-head);
 }
 .opt.picked { border-color: var(--midnight); background: rgba(25, 25, 35, 0.035); }
+/* read-only preview of the options on the landing page (not clickable) */
+.opt-readonly {
+  cursor: default;
+  border-color: var(--line-soft);
+  background: #fbfbf7;
+  font-size: 0.94rem;
+}
+.opt-readonly:hover { border-color: var(--line-soft); transform: none; }
+.opt-readonly .opt-key { background: rgba(25, 25, 35, 0.08); }
+
+/* "why this question?" note — lavender = AI / personalisation */
+.why-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-top: 16px; padding: 13px 15px;
+  border-radius: var(--r-md);
+  background: var(--lavender-soft);
+  border: 1px solid rgba(185, 160, 255, 0.45);
+  color: #3b2a63; font-size: 0.88rem; line-height: 1.5;
+}
+.why-row b { color: #2a1d49; }
+.why-ic { width: 19px; height: 19px; flex: none; color: #6d4fd6; margin-top: 1px; }
+.why-ic svg { width: 19px; height: 19px; }
+
+/* white "next recommended exercise" card on the landing page */
+.next-card .card-title { display: flex; align-items: center; gap: 9px; }
+.next-ic {
+  width: 30px; height: 30px; flex: none; padding: 6px;
+  border-radius: 10px; background: var(--lavender-soft); color: #5b3fc4;
+}
 .opt.correct { border-color: var(--mint); background: var(--mint-soft); }
 .opt.correct .opt-key { background: var(--mint); color: #06301f; }
 .opt.wrong { border-color: var(--coral); background: var(--coral-soft); }
@@ -782,12 +811,17 @@ html[dir="rtl"] .composer { padding: 10px 16px 10px 10px; }
 }
 .prompt-chips { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 6px; }
 .chip {
+  display: inline-flex; align-items: center; gap: 7px;
   border: 1px solid var(--line); background: var(--white);
   border-radius: var(--r-pill); padding: 8px 14px; font-size: 0.84rem;
-  cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  line-height: 1.45; color: var(--midnight); max-width: 100%;
+  cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
   text-align: start;
 }
 .chip:hover { border-color: var(--lavender); background: var(--lavender-soft); transform: translateY(-1px); }
+.chip svg { width: 16px; height: 16px; flex: none; }
+.chip.on { background: var(--midnight); color: var(--off); border-color: var(--midnight); }
+.chip.on svg { color: var(--lime); }
 .mode-switch { display: inline-flex; background: rgba(25, 25, 35, 0.06); border-radius: var(--r-pill); padding: 3px; gap: 2px; }
 .mode-switch button {
   border: 0; background: transparent; cursor: pointer;

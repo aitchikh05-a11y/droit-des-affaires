@@ -61,20 +61,20 @@
       if (!pick) { host.innerHTML = ""; return; }
       var s = JM.subject(pick.subjectId);
       host.innerHTML =
-        '<div class="row-flex wrap" style="gap:9px;margin-bottom:12px">' +
+        '<div class="row-flex wrap" style="gap:9px;margin-bottom:14px">' +
           '<span class="pill pill-dark">' + JM.esc(s.name) + "</span>" +
-          '<span class="pill pill-outline">' + JM.esc(JM.topicName(pick.subjectId, pick.topicId)) + "</span>" +
+          '<span class="pill pill-outline" style="background:rgba(25,25,35,.05);color:var(--midnight)">' +
+            JM.esc(JM.topicName(pick.subjectId, pick.topicId)) + "</span>" +
           '<span class="pill pill-lav">' + JM.C.ui.difficulty[pick.q.level] + "</span>" +
         "</div>" +
         '<p class="q-stem" style="font-size:1.08rem">' + JM.esc(pick.q.stem) + "</p>" +
-        '<div class="prompt-chips">' +
+        '<div class="options">' +
           pick.q.options.map(function (o, i) {
-            return '<span class="chip" style="cursor:default">' + (i + 1) + ". " + JM.esc(o) + "</span>";
+            return '<div class="opt opt-readonly"><span class="opt-key">' + (i + 1) + "</span><span>" + JM.esc(o) + "</span></div>";
           }).join("") +
         "</div>" +
-        '<p class="small muted" style="display:flex;gap:8px;align-items:flex-start">' +
-          '<span style="width:18px;height:18px;flex:none;color:var(--lavender)">' + JM.icon("sparkles") + "</span>" +
-          "<span><b>" + JM.t("landing.method.nextReason") + ".</b> " + JM.esc(pick.reason) + "</span></p>";
+        '<div class="why-row"><span class="why-ic">' + JM.icon("sparkles") + "</span>" +
+          "<span><b>" + JM.t("practice.whyThis") + "</b> " + JM.esc(pick.reason) + "</span></div>";
     }
 
     render(null);
