@@ -1,0 +1,37 @@
+# ============================================================
+# JurisMind — Cloudflare Pages configuration
+# Static site, no build step required (the HTML is committed).
+# Docs: https://developers.cloudflare.com/pages/configuration/build-configuration/
+# ============================================================
+
+# Build command (optional): leaves the committed HTML untouched, it only
+# writes _headers / _redirects / 404.html into dist/ so the root stays clean.
+# Delete this line (or clear it in the dashboard) to publish the repo as-is.
+[build]
+command = "node tools/cf-build.mjs"
+
+# Output directory to publish (Pages default; the build script fills it in).
+[build.assets]
+directory = "dist"
+
+# Node version for the build image.
+[build.environment]
+NODE_VERSION = "22"
+
+# ------------------------------------------------------------------
+# Compatibility: keep the plain static behaviour we rely on.
+# ------------------------------------------------------------------
+[compatibility_flags]
+# Respect the incoming User-Agent so the *intended* effect of mobile
+# redirects is explicit and code-cache behaviour stays predictable.
+user_agent_caching = true
+
+# ------------------------------------------------------------------
+# Preview deployments: every branch/PR gets its own URL.
+# ------------------------------------------------------------------
+[preview]
+# nothing special needed — the same static assets are served
+
+# ------------------------------------------------------------------
+# Aliases: jurismind.pages.dev equivalents (set in the dashboard).
+# ------------------------------------------------------------------

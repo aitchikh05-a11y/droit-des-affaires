@@ -1,0 +1,10 @@
+# Files Cloudflare Pages should never upload
+tools/
+*.md
+wrangler.toml
+.cloudflare/
+.github/
+.git/
+node_modules/
+dist/
+assets/scss/
