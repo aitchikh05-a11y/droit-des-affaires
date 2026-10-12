@@ -170,8 +170,9 @@
       delta = -9;
       st.streak = 0;
       interval = 1;
+      state.xp = (state.xp || 0) + 2;
     }
-    st.m = Math.max(5, Math.min(98, before + delta));
+    st.m = Math.max(0, Math.min(98, before + delta));
     st.seen = (st.seen || 0) + 1;
     st.last = JM.today();
     st.next = JM.fromToday(interval);
@@ -214,6 +215,7 @@
       if (history[i].correct) correctStreak++;
       else break;
     }
+    tryBadge("diagnostic", (state.sessions || 0) >= 1);
     tryBadge("firstCase", !!ctx.correct);
     tryBadge("streak7", (state.streak || 0) >= 7);
     tryBadge("streak30", (state.streak || 0) >= 30);

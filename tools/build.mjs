@@ -18,6 +18,19 @@ import ar from "./content/ar.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const LANGS = [en, fr, ar];
 const PAGES = ["index", "dashboard", "path", "practice", "subjects", "tutor"];
+const GA_MEASUREMENT_ID = "G-6VYYNLG1L0";
+const GOOGLE_SITE_VERIFICATION_FILE = "googledb2edb8cbf9baa93.html";
+
+function googleAnalyticsTag() {
+  return `<!-- Google tag (gtag.js) — JurisMind (Stream ID: 16109126475, https://droit-des-affaires-dqt.pages.dev) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${GA_MEASUREMENT_ID}');
+</script>`;
+}
 
 /* ---------- tiny helpers ---------- */
 const esc = (s) =>
@@ -130,9 +143,12 @@ function head(L, ctx, page) {
     );
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${googleAnalyticsTag()}
 <title>${esc(titles[page])}</title>
 <meta name="description" content="${esc(L.meta.description)}">
 <meta name="theme-color" content="#191923">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="google-site-verification" content="googledb2edb8cbf9baa93">
 ${langGuard(L)}
 <meta property="og:title" content="${esc(titles[page])}">
 <meta property="og:description" content="${esc(L.meta.description)}">
@@ -141,7 +157,7 @@ ${langGuard(L)}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="${ctx.asset("css/jurismind.css")}?v=${VER["assets/css/jurismind.css"]}">`;
+<link rel="stylesheet" href="${ctx.asset("css/jurismind.css")}?v=${VER["assets/css/jurismind.css"]}" integrity="${SRI["assets/css/jurismind.css"]}">`;
 }
 
 /* ---------- shared chrome ---------- */
@@ -246,7 +262,7 @@ function sidebar(L, ctx, page) {
       <div class="row-flex" style="justify-content:space-between">
         <div>
           <div class="tiny" style="color:rgba(247,247,242,.6)">${esc(L.dash.streak)}</div>
-          <div class="streak-num"><span data-streak>14</span> <span class="tiny" style="font-size:.8rem;color:rgba(247,247,242,.6)">${esc(
+          <div class="streak-num"><span data-streak>0</span> <span class="tiny" style="font-size:.8rem;color:rgba(247,247,242,.6)">${esc(
             L.dash.streakSub
           )}</span></div>
         </div>
@@ -257,7 +273,7 @@ function sidebar(L, ctx, page) {
       <span class="avatar" data-user-initial>J</span>
       <span class="grow">
         <span class="small" style="display:block" data-user-name>${esc(L.auth.guest)}</span>
-        <span class="tiny" style="color:rgba(247,247,242,.55)">${esc(L.dash.level)} <span data-level>9</span> · <span data-xp>4380</span> ${esc(
+        <span class="tiny" style="color:rgba(247,247,242,.55)">${esc(L.dash.level)} <span data-level>0</span> · <span data-xp>0</span> ${esc(
           L.ui.xp
         )}</span>
       </span>
@@ -282,8 +298,8 @@ function topbar(L, ctx, page, title) {
   return `<div class="topbar">
   <button class="burger" data-burger aria-label="Menu">${icon("menu")}</button>
   <div class="crumb grow"><span>JurisMind</span><span>·</span><strong>${esc(title)}</strong></div>
-  <span class="pill pill-dark hide-sm">${esc(L.dash.level)} <b data-level>9</b></span>
-  <span class="xp-chip hide-sm">${icon("bolt")} <span data-xp>4380</span> ${esc(L.ui.xp)}</span>
+  <span class="pill pill-dark hide-sm">${esc(L.dash.level)} <b data-level>0</b></span>
+  <span class="xp-chip hide-sm">${icon("bolt")} <span data-xp>0</span> ${esc(L.ui.xp)}</span>
   ${langPicker(L, ctx, LANGS, "light")}
   <a class="btn btn-lime btn-sm hide-xs" href="${ctx.href("practice.html")}">${esc(L.ctas.practiceNow)}</a>
 </div>`;
@@ -311,6 +327,7 @@ function footer(L, ctx) {
     </div>
     <div class="foot-bottom">
       <span>${esc(L.footer.rights)}</span>
+      <span class="pill pill-outline tiny" style="border-color:rgba(101,214,176,.35);color:var(--mint);gap:6px" title="AES-256-GCM + PBKDF2-SHA256 + SHA-384 SRI">${icon("shield")} AES-256-GCM · SHA-384 SRI</span>
       <div class="foot-legal">${L.footer.legal.map((l) => `<a href="${ctx.href("index.html")}">${esc(l.label)}</a>`).join("")}</div>
       ${langPicker(L, ctx, LANGS, "dark")}
     </div>
@@ -397,15 +414,15 @@ function landingPage(L, ctx, all) {
         <div class="htile htile-lime">
           <div class="htile-lab">${esc(H.heroCard.nextFocus)}</div>
           <div class="htile-val" style="font-size:1.9rem">
-            <span data-metric="weakest">62</span><span style="font-size:1rem">%</span>
+            <span data-metric="weakest">0</span><span style="font-size:1rem">%</span>
           </div>
           <div class="tiny" style="color:rgba(28,36,8,.72)">${esc(H.heroCard.recommended)}</div>
-          <div class="meter meter-thin" style="margin-top:10px;background:rgba(28,36,8,.14)"><i data-meter-fill="62" style="background:#191923;width:0"></i></div>
+          <div class="meter meter-thin" style="margin-top:10px;background:rgba(28,36,8,.14)"><i data-meter-fill="0" style="background:#191923;width:0"></i></div>
         </div>
         <div style="display:grid;gap:12px">
           <div class="htile">
             <div class="htile-lab">${esc(H.heroCard.weakSpots)}</div>
-            <div class="htile-val">${esc(H.heroCard.weakSpotsValue)}</div>
+            <div class="htile-val">${esc(L.dash.level)} <span data-level>0</span> · <span data-xp>0</span> ${esc(L.ui.xp)}</div>
           </div>
           <div class="htile htile-lav">
             <div class="htile-lab">${esc(H.heroCard.daily)}</div>
@@ -448,7 +465,7 @@ function landingPage(L, ctx, all) {
     <div class="card chart-card reveal">
       <div class="between mb-2">
         <div class="card-title">${esc(H.retention.chartCaption)}</div>
-        <span class="pill pill-mint">${icon("trend")} +23%</span>
+        <span class="pill pill-mint">${icon("trend")} 1 → 3 → 7 → 14 → 30d</span>
       </div>
       ${decayChart(L)}
       <div class="chart-legend mt-2">
@@ -564,23 +581,6 @@ function landingPage(L, ctx, all) {
   </div>
 </section>
 
-<section class="section">
-  <div class="container">
-    <div class="sec-head">
-      <p class="kicker">${esc(H.voices.kicker)}</p>
-      <h2>${esc(H.voices.title)}</h2>
-    </div>
-    <div class="voices">
-      ${H.voices.items
-        .map(
-          (v) => `<figure class="voice reveal"><blockquote>${esc(v.q)}</blockquote>
-        <figcaption><strong>${esc(v.n)}</strong> · ${esc(v.r)}</figcaption></figure>`
-        )
-        .join("")}
-    </div>
-  </div>
-</section>
-
 <section class="section section-tight" id="faq">
   <div class="container">
     <div class="sec-head center">
@@ -638,12 +638,12 @@ function dashboardPage(L, ctx) {
           <p class="kicker" style="color:var(--lavender);margin-bottom:6px">${esc(D.nextFocus)}</p>
           <div id="dash-focus"></div>
           <div class="row-flex wrap mt-2" style="gap:10px">
-            <span class="pill pill-lime" data-level-pill>${esc(D.level)} 9</span>
-            <span class="pill" style="background:rgba(255,255,255,.08);color:var(--off)">${esc(D.streak)} <b data-streak>14</b></span>
-            <span class="pill pill-lav"><span data-xp>4380</span> ${esc(L.ui.xp)}</span>
+            <span class="pill pill-lime" data-level-pill>${esc(D.level)} 0</span>
+            <span class="pill" style="background:rgba(255,255,255,.08);color:var(--off)">${esc(D.streak)} <b data-streak>0</b></span>
+            <span class="pill pill-lav"><span data-xp>0</span> ${esc(L.ui.xp)}</span>
           </div>
           <div class="meter meter-thin mt-2" style="background:rgba(255,255,255,.14)"><i data-level-meter style="width:0;background:var(--lime)"></i></div>
-          <p class="tiny mt-1" style="color:rgba(247,247,242,.55)" data-next-level>${esc(fmt(D.nextLevel, { n: 120, l: 10 }))}</p>
+          <p class="tiny mt-1" style="color:rgba(247,247,242,.55)" data-next-level>${esc(fmt(D.nextLevel, { n: 500, l: 1 }))}</p>
           <a class="btn btn-lime mt-2" href="${ctx.href("practice.html")}">${esc(D.continueBtn)} ${icon("arrow")}</a>
         </div>
         <div style="text-align:center">
@@ -660,8 +660,8 @@ function dashboardPage(L, ctx) {
         <span class="tiny muted">${esc(D.weakSpotsSub)}</span></div></div>
       <div class="card"><div class="stat"><span class="stat-lab">${esc(D.reviewQueue)}</span><span class="stat-val" data-due-count>0</span>
         <span class="tiny muted">${esc(D.dueToday)}</span></div></div>
-      <div class="card"><div class="stat"><span class="stat-lab">${esc(D.streak)}</span><span class="stat-val" data-streak>14</span>
-        <span class="tiny muted">${esc(D.best)} <b data-best>21</b></span></div></div>
+      <div class="card"><div class="stat"><span class="stat-lab">${esc(D.streak)}</span><span class="stat-val" data-streak>0</span>
+        <span class="tiny muted">${esc(D.best)} <b data-best>0</b></span></div></div>
     </div>
 
     <section class="card">
@@ -700,7 +700,7 @@ function dashboardPage(L, ctx) {
 
     <section class="card">
       <div class="card-head"><div><div class="card-title">${esc(D.todayPlan)}</div></div>
-      <span class="pill pill-outline">${esc(L.dash.planDone)}</span></div>
+      <span class="pill pill-outline" data-plan-count>0/3</span></div>
       <div class="grid" style="gap:8px" id="plan"></div>
     </section>
 
@@ -982,22 +982,26 @@ ${head(L, ctx, page)}
 <body data-page="${page}" data-lang="${L.code}">
 ${bodyChrome}
 <script type="application/json" id="jm-content">${dict}</script>
-<script src="${ctx.asset("js/app.js")}?v=${VER["assets/js/app.js"]}"></script>
-<script src="${ctx.asset("js/engine.js")}?v=${VER["assets/js/engine.js"]}"></script>
-<script src="${ctx.asset("js/pages.js")}?v=${VER["assets/js/pages.js"]}"></script>
+<script src="${ctx.asset("js/app.js")}?v=${VER["assets/js/app.js"]}" integrity="${SRI["assets/js/app.js"]}"></script>
+<script src="${ctx.asset("js/engine.js")}?v=${VER["assets/js/engine.js"]}" integrity="${SRI["assets/js/engine.js"]}"></script>
+<script src="${ctx.asset("js/pages.js")}?v=${VER["assets/js/pages.js"]}" integrity="${SRI["assets/js/pages.js"]}"></script>
 </body>
 </html>
 `;
 }
 
-/* ---------- asset fingerprints (cache busting) ---------- */
+/* ---------- asset fingerprints (cache busting) & SHA-384 Subresource Integrity ---------- */
 const ASSETS = ["assets/css/jurismind.css", "assets/js/app.js", "assets/js/engine.js", "assets/js/pages.js"];
 const VER = {};
+const SRI = {};
 for (const a of ASSETS) {
   try {
-    VER[a] = createHash("sha1").update(readFileSync(join(ROOT, a))).digest("hex").slice(0, 8);
+    const buf = readFileSync(join(ROOT, a));
+    VER[a] = createHash("sha256").update(buf).digest("hex").slice(0, 8);
+    SRI[a] = "sha384-" + createHash("sha384").update(buf).digest("base64");
   } catch (e) {
     VER[a] = "1";
+    SRI[a] = "";
   }
 }
 
@@ -1015,6 +1019,7 @@ for (const L of LANGS) {
   writeFileSync(
     join(dir, "login.html"),
     `<!DOCTYPE html><html lang="${L.htmlLang}" dir="${L.dir}" data-lang="${L.code}"><head><meta charset="utf-8">` +
+      `${googleAnalyticsTag()}` +
       `<title>JurisMind</title>${langGuard(L)}` +
       `<meta http-equiv="refresh" content="0; url=dashboard.html">` +
       `<meta name="robots" content="noindex"></head>` +
@@ -1024,5 +1029,12 @@ for (const L of LANGS) {
   );
   written++;
 }
+
+/* Google Search Console verification file */
+writeFileSync(
+  join(ROOT, GOOGLE_SITE_VERIFICATION_FILE),
+  `google-site-verification: ${GOOGLE_SITE_VERIFICATION_FILE}`,
+  "utf8"
+);
 
 console.log(`JurisMind: ${written} pages written (${LANGS.map((l) => l.code).join(" · ")}) → ${ROOT}`);
