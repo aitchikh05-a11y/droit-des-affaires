@@ -6,6 +6,33 @@
 <title>المسار التعليمي — JurisMind</title>
 <meta name="description" content="JurisMind مسار تعلّم تكيّفي لطلبة الحقوق: يكتشف نقاط ضعفك في قانون العقود والقانون التجاري وقانون الشغل، ويبرمج مراجعاتك، ويجهّز لك التمرين التالي قبل أن تنسى ما درسته.">
 <meta name="theme-color" content="#191923">
+<script data-lang-guard>
+(function () {
+  try {
+    var CODES = ["en", "fr", "ar"], HERE = "ar";
+    var raw = location.search;
+    if (raw.charAt(0) === "?") raw = raw.slice(1);
+    var parts = raw ? raw.split("&") : [];
+    var keep = [], asked = null, i, kv;
+    for (i = 0; i < parts.length; i++) {
+      kv = parts[i].split("=");
+      if (kv[0] === "lang") asked = decodeURIComponent(kv[1] || "").toLowerCase();
+      else if (parts[i]) keep.push(parts[i]);
+    }
+    var stored = null;
+    try { stored = localStorage.getItem("jurismind.lang"); } catch (e) {}
+    var want = asked && CODES.indexOf(asked) > -1 ? asked : stored;
+    if (asked && CODES.indexOf(asked) > -1) { try { localStorage.setItem("jurismind.lang", asked); } catch (e) {} }
+    if (!want || CODES.indexOf(want) < 0 || want === HERE) return;
+    var seg = location.pathname.split("/");
+    var file = seg.pop() || "index.html";
+    if (seg[seg.length - 1] === "fr" || seg[seg.length - 1] === "ar") seg.pop();
+    var target = seg.join("/") + "/" + (want === "en" ? "" : want + "/") + file +
+      (keep.length ? "?" + keep.join("&") : "") + location.hash;
+    location.replace(target);
+  } catch (e) {}
+})();
+</script>
 <meta property="og:title" content="المسار التعليمي — JurisMind">
 <meta property="og:description" content="JurisMind مسار تعلّم تكيّفي لطلبة الحقوق: يكتشف نقاط ضعفك في قانون العقود والقانون التجاري وقانون الشغل، ويبرمج مراجعاتك، ويجهّز لك التمرين التالي قبل أن تنسى ما درسته.">
 <meta property="og:type" content="website">
@@ -40,7 +67,6 @@
         <span class="tiny" style="color:rgba(247,247,242,.55)">المستوى <span data-level>9</span> · <span data-xp>4380</span> نقطة</span>
       </span>
     </a>
-    <div class="prompt-chips"><div class="lang" role="group" aria-label="اللغة"><a href="../path.html" hreflang="en">English</a><a href="../fr/path.html" hreflang="fr">Français</a><a href="../ar/path.html" hreflang="ar" class="on" aria-current="true">العربية</a></div></div>
     <button class="btn btn-ghost btn-sm btn-block" style="--btn-fg:rgba(247,247,242,.75);border-color:rgba(255,255,255,.15)" data-reset>
       تصفير بيانات العرض
     </button>
@@ -52,8 +78,29 @@
   <div class="crumb grow"><span>JurisMind</span><span>·</span><strong>المسار التعليمي</strong></div>
   <span class="pill pill-dark hide-sm">المستوى <b data-level>9</b></span>
   <span class="xp-chip hide-sm"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg> <span data-xp>4380</span> نقطة</span>
-  <div class="lang" role="group" aria-label="اللغة"><a href="../path.html" hreflang="en">English</a><a href="../fr/path.html" hreflang="fr">Français</a><a href="../ar/path.html" hreflang="ar" class="on" aria-current="true">العربية</a></div>
-  <a class="btn btn-lime btn-sm" href="../practice.html">تمرّن الآن</a>
+  <div class="langpick" data-langpick>
+  <button type="button" class="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="langmenu-light-ar-pathhtml"
+          aria-label="اللغة: العربية">
+    <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17"/><path d="M12 3c2.4 3 2.4 15 0 18M12 3c-2.4 3-2.4 15 0 18"/></svg><span class="lang-code">AR</span>
+    <span class="chev"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+  </button>
+  <ul class="lang-menu" id="langmenu-light-ar-pathhtml" role="menu" hidden>
+    <li role="none"><a role="menuitemradio" href="../path.html?lang=en" hreflang="en" lang="en"
+        data-lang-option="en" aria-checked="false">
+        <span>English<br><span class="lh">EN · LTR</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li><li role="none"><a role="menuitemradio" href="../fr/path.html?lang=fr" hreflang="fr" lang="fr"
+        data-lang-option="fr" aria-checked="false">
+        <span>Français<br><span class="lh">FR · LTR</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li><li role="none"><a role="menuitemradio" href="../ar/path.html?lang=ar" hreflang="ar" lang="ar"
+        data-lang-option="ar" aria-checked="true">
+        <span>العربية<br><span class="lh">AR · RTL</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li>
+  </ul>
+</div>
+  <a class="btn btn-lime btn-sm hide-xs" href="../practice.html">تمرّن الآن</a>
 </div>
     <div class="page">
 <div class="page-head">
@@ -141,7 +188,28 @@
     <div class="foot-bottom">
       <span>© 2026 JurisMind. مشروع تجريبي.</span>
       <div class="foot-legal"><a href="../index.html">الخصوصية</a><a href="../index.html">الشروط</a><a href="../index.html">إمكانية الولوج</a></div>
-      <div class="lang" role="group" aria-label="اللغة"><a href="../path.html" hreflang="en">English</a><a href="../fr/path.html" hreflang="fr">Français</a><a href="../ar/path.html" hreflang="ar" class="on" aria-current="true">العربية</a></div>
+      <div class="langpick langpick-dark" data-langpick>
+  <button type="button" class="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="langmenu-dark-ar-pathhtml"
+          aria-label="اللغة: العربية">
+    <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17"/><path d="M12 3c2.4 3 2.4 15 0 18M12 3c-2.4 3-2.4 15 0 18"/></svg><span class="lang-code">AR</span>
+    <span class="chev"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+  </button>
+  <ul class="lang-menu" id="langmenu-dark-ar-pathhtml" role="menu" hidden>
+    <li role="none"><a role="menuitemradio" href="../path.html?lang=en" hreflang="en" lang="en"
+        data-lang-option="en" aria-checked="false">
+        <span>English<br><span class="lh">EN · LTR</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li><li role="none"><a role="menuitemradio" href="../fr/path.html?lang=fr" hreflang="fr" lang="fr"
+        data-lang-option="fr" aria-checked="false">
+        <span>Français<br><span class="lh">FR · LTR</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li><li role="none"><a role="menuitemradio" href="../ar/path.html?lang=ar" hreflang="ar" lang="ar"
+        data-lang-option="ar" aria-checked="true">
+        <span>العربية<br><span class="lh">AR · RTL</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li>
+  </ul>
+</div>
     </div>
   </div>
 </footer>

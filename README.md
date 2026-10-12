@@ -37,6 +37,16 @@ Demo progress lives in `localStorage` (`jurismind.state.v1`) — nothing leaves 
 A seeded 30-day history makes the dashboard meaningful on first load; “Reset demo data”
 starts over.
 
+## Language switching
+
+One button per page (globe + current code + dropdown listing English / Français / العربية
+with the active one ticked), in the landing header and footer, and in the app topbar and
+footer. The choice is stored under `jurismind.lang` and **tracked across every page**: a
+tiny guard script in each document's `<head>` sends the visitor to the same page in the
+remembered language before anything paints, keeping query strings (`?subject=…`) and
+hashes intact and never redirecting a first-time visitor. Deep links work too:
+`/index.html?lang=ar`, `/fr/practice.html?lang=en&subject=labour`.
+
 ## Design system
 
 * **Colour** — Electric lime `#C6FF4D`, Midnight `#191923`, Lavender `#B9A0FF`,

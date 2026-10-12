@@ -335,26 +335,55 @@ html[dir="rtl"] .bars-lab { direction: rtl; }
 }
 .mobile-nav > a:not(.btn):hover { background: rgba(25, 25, 35, 0.03); }
 
-/* language switcher */
-.lang {
-  position: relative;
-  display: inline-flex; align-items: center;
+/* ---------- language picker: one button + dropdown ---------- */
+.langpick { position: relative; display: inline-flex; }
+.lang-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 11px; border-radius: var(--r-pill);
   background: var(--white); border: 1px solid var(--line);
-  border-radius: var(--r-pill); padding: 3px; gap: 2px;
+  color: var(--midnight); font-weight: 600; font-size: 0.82rem; cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
 }
-.lang a, .lang button {
-  border: 0; background: transparent; cursor: pointer;
-  padding: 6px 11px; border-radius: var(--r-pill);
-  font-size: 0.8rem; font-weight: 600; color: var(--grey);
-  display: inline-flex; align-items: center; gap: 6px;
+.lang-btn:hover { border-color: var(--midnight); transform: translateY(-1px); }
+.lang-btn > svg { width: 17px; height: 17px; }
+.lang-btn .chev { width: 14px; height: 14px; color: var(--grey); margin-inline-start: -2px; }
+.lang-btn .chev svg { width: 14px; height: 14px; transition: transform 0.2s ease; }
+.langpick.open .lang-btn .chev svg { transform: rotate(180deg); }
+.lang-code { font-family: var(--font-head); letter-spacing: 0.05em; }
+.lang-menu {
+  position: absolute; z-index: 70;
+  inset-block-start: calc(100% + 8px); inset-inline-end: 0;
+  min-width: 190px; margin: 0; padding: 7px;
+  background: var(--white); border: 1px solid var(--line-soft);
+  border-radius: var(--r-md); box-shadow: var(--sh-2);
 }
-.lang .on { background: var(--midnight); color: var(--off); }
-.lang-compact a, .lang-compact button { padding: 5px 9px; font-size: 0.76rem; }
-.lang-select {
-  appearance: none; border: 1px solid var(--line); background: var(--white);
-  border-radius: var(--r-pill); padding: 9px 14px; font-size: 0.85rem; font-weight: 600;
-  cursor: pointer;
+.lang-menu[hidden] { display: none; }
+.lang-menu li { list-style: none; }
+.lang-menu a {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 10px 12px; border-radius: 11px;
+  font-size: 0.9rem; font-weight: 500; color: var(--midnight);
 }
+.lang-menu a:hover { background: var(--off); }
+.lang-menu a .tick { width: 17px; height: 17px; flex: none; color: var(--lime-deep); opacity: 0; }
+.lang-menu a .tick svg { width: 17px; height: 17px; }
+.lang-menu a[aria-checked="true"] { font-weight: 700; }
+.lang-menu a[aria-checked="true"] .tick { opacity: 1; }
+.lang-menu .lh { font-size: 0.7rem; color: var(--grey); letter-spacing: 0.04em; }
+
+/* dark surfaces: sidebar and footer */
+.langpick-dark .lang-btn {
+  background: var(--midnight-2); border-color: rgba(255, 255, 255, 0.16); color: var(--off);
+}
+.langpick-dark .lang-btn:hover { border-color: rgba(255, 255, 255, 0.42); }
+.langpick-dark .lang-btn .chev { color: rgba(247, 247, 242, 0.6); }
+.sidebar .langpick { width: 100%; }
+.sidebar .langpick .lang-btn { width: 100%; justify-content: center; }
+.sidebar .lang-menu {
+  inset-block-start: auto; inset-block-end: calc(100% + 8px);
+  inset-inline: 0; min-width: 0;
+}
+.card-dark .langpick { width: 100%; }
 
 .hero { position: relative; overflow: hidden; padding: 70px 0 40px; }
 .hero-bg {
@@ -876,15 +905,6 @@ html[dir="rtl"] .composer { padding: 10px 16px 10px 10px; }
 .flame { display: inline-flex; align-items: center; gap: 7px; }
 .flame svg { width: 18px; height: 18px; color: var(--coral); }
 
-/* language switcher inside the dark sidebar */
-.sidebar .lang, .card-dark .lang {
-  background: var(--midnight-2);
-  border-color: rgba(255, 255, 255, 0.14);
-  width: 100%;
-}
-.sidebar .lang a, .sidebar .lang button { color: rgba(247, 247, 242, 0.7); flex: 1; justify-content: center; }
-.sidebar .lang .on { background: var(--lime); color: var(--lime-ink); }
-
 /* decorative grid background */
 .grid-bg {
   background-image:
@@ -940,6 +960,8 @@ html[dir="rtl"] .composer { padding: 10px 16px 10px 10px; }
 }
 
 @media (max-width: 620px) {
+  .hide-xs { display: none !important; }
+  .langpick .lang-btn { padding: 8px 9px; }
   .subj-grid, .stats-band, .g-2, .g-4, .foot-grid { grid-template-columns: minmax(0, 1fr); }
   .journey { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

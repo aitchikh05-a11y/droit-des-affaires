@@ -63,7 +63,8 @@ const ICONS = {
   scale: '<path d="M12 3v18M7 21h10"/><path d="m12 5-6 2 3 6 3-6zM12 5l6 2-3 6-3-6z"/>',
   arrow: '<path d="M4 12h15"/><path d="m13 6 6 6-6 6"/>',
   send: '<path d="m4 12 16-8-6 16-3-6z"/>',
-  x: '<path d="M6 6l12 12M18 6 6 18"/>'
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  chevron: '<path d="m6 9 6 6 6-6"/>'
 };
 
 /* the landing burger toggles this panel (see pages.landing) */
@@ -115,6 +116,7 @@ function head(L, ctx, page) {
 <title>${esc(titles[page])}</title>
 <meta name="description" content="${esc(L.meta.description)}">
 <meta name="theme-color" content="#191923">
+${langGuard(L)}
 <meta property="og:title" content="${esc(titles[page])}">
 <meta property="og:description" content="${esc(L.meta.description)}">
 <meta property="og:type" content="website">
@@ -126,15 +128,58 @@ function head(L, ctx, page) {
 }
 
 /* ---------- shared chrome ---------- */
-function langSwitch(L, ctx, all) {
-  return `<div class="lang" role="group" aria-label="${esc(L.ctas.switchLanguage)}">${all
-    .map(
-      (X) =>
-        `<a href="${ctx.langHref(X.code)}" hreflang="${X.code}"${
-          X.code === L.code ? ' class="on" aria-current="true"' : ""
-        }>${esc(X.native)}</a>`
-    )
-    .join("")}</div>`;
+/* single-button language picker: current language code + dropdown of the three */
+function langPicker(L, ctx, all, tone = "light") {
+  const id = `langmenu-${tone}-${L.code}-${ctx.pageFile.replace(/\W+/g, "")}`;
+  return `<div class="langpick${tone === "dark" ? " langpick-dark" : ""}" data-langpick>
+  <button type="button" class="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="${id}"
+          aria-label="${esc(L.ctas.switchLanguage)}: ${esc(L.native)}">
+    ${icon("globe")}<span class="lang-code">${L.code.toUpperCase()}</span>
+    <span class="chev">${icon("chevron")}</span>
+  </button>
+  <ul class="lang-menu" id="${id}" role="menu" hidden>
+    ${all
+      .map(
+        (X) => `<li role="none"><a role="menuitemradio" href="${ctx.langHref(X.code)}?lang=${X.code}" hreflang="${X.code}" lang="${X.code}"
+        data-lang-option="${X.code}" aria-checked="${X.code === L.code}">
+        <span>${esc(X.native)}<br><span class="lh">${X.code.toUpperCase()} · ${X.dir.toUpperCase()}</span></span>
+        <span class="tick">${icon("check")}</span>
+      </a></li>`
+      )
+      .join("")}
+  </ul>
+</div>`;
+}
+
+/* runs before the body paints: keeps the language the visitor picked on every page */
+function langGuard(L) {
+  return `<script data-lang-guard>
+(function () {
+  try {
+    var CODES = ["en", "fr", "ar"], HERE = "${L.code}";
+    var raw = location.search;
+    if (raw.charAt(0) === "?") raw = raw.slice(1);
+    var parts = raw ? raw.split("&") : [];
+    var keep = [], asked = null, i, kv;
+    for (i = 0; i < parts.length; i++) {
+      kv = parts[i].split("=");
+      if (kv[0] === "lang") asked = decodeURIComponent(kv[1] || "").toLowerCase();
+      else if (parts[i]) keep.push(parts[i]);
+    }
+    var stored = null;
+    try { stored = localStorage.getItem("jurismind.lang"); } catch (e) {}
+    var want = asked && CODES.indexOf(asked) > -1 ? asked : stored;
+    if (asked && CODES.indexOf(asked) > -1) { try { localStorage.setItem("jurismind.lang", asked); } catch (e) {} }
+    if (!want || CODES.indexOf(want) < 0 || want === HERE) return;
+    var seg = location.pathname.split("/");
+    var file = seg.pop() || "index.html";
+    if (seg[seg.length - 1] === "fr" || seg[seg.length - 1] === "ar") seg.pop();
+    var target = seg.join("/") + "/" + (want === "en" ? "" : want + "/") + file +
+      (keep.length ? "?" + keep.join("&") : "") + location.hash;
+    location.replace(target);
+  } catch (e) {}
+})();
+</script>`;
 }
 
 function landingHeader(L, ctx, all) {
@@ -147,9 +192,9 @@ function landingHeader(L, ctx, all) {
       ${L.nav.landing.map((n) => `<a href="${n.href}">${esc(n.label)}</a>`).join("")}
     </nav>
     <div class="head-actions">
-      ${langSwitch(L, ctx, all)}
+      ${langPicker(L, ctx, all)}
       <a class="btn btn-ghost btn-sm hide-sm" href="${ctx.href("tutor.html")}">${esc(L.ctas.askTutor)}</a>
-      <a class="btn btn-lime btn-sm" href="${ctx.href("dashboard.html")}">${esc(L.ctas.openDashboard)}</a>
+      <a class="btn btn-lime btn-sm hide-xs" href="${ctx.href("dashboard.html")}">${esc(L.ctas.openDashboard)}</a>
       <button class="burger" data-burger-nav aria-label="Menu">${icon("menu")}</button>
     </div>
   </div>
@@ -194,7 +239,6 @@ function sidebar(L, ctx, page) {
         )}</span>
       </span>
     </a>
-    <div class="prompt-chips">${langSwitch(L, ctx, LANGS)}</div>
     <button class="btn btn-ghost btn-sm btn-block" style="--btn-fg:rgba(247,247,242,.75);border-color:rgba(255,255,255,.15)" data-reset>
       ${esc(L.dash.reset)}
     </button>
@@ -217,8 +261,8 @@ function topbar(L, ctx, page, title) {
   <div class="crumb grow"><span>JurisMind</span><span>·</span><strong>${esc(title)}</strong></div>
   <span class="pill pill-dark hide-sm">${esc(L.dash.level)} <b data-level>9</b></span>
   <span class="xp-chip hide-sm">${icon("bolt")} <span data-xp>4380</span> ${esc(L.ui.xp)}</span>
-  ${langSwitch(L, ctx, LANGS)}
-  <a class="btn btn-lime btn-sm" href="${ctx.href("practice.html")}">${esc(L.ctas.practiceNow)}</a>
+  ${langPicker(L, ctx, LANGS)}
+  <a class="btn btn-lime btn-sm hide-xs" href="${ctx.href("practice.html")}">${esc(L.ctas.practiceNow)}</a>
 </div>`;
 }
 
@@ -245,7 +289,7 @@ function footer(L, ctx) {
     <div class="foot-bottom">
       <span>${esc(L.footer.rights)}</span>
       <div class="foot-legal">${L.footer.legal.map((l) => `<a href="${ctx.href("index.html")}">${esc(l.label)}</a>`).join("")}</div>
-      ${langSwitch(L, ctx, LANGS)}
+      ${langPicker(L, ctx, LANGS, "dark")}
     </div>
   </div>
 </footer>`;
@@ -933,11 +977,15 @@ for (const L of LANGS) {
     writeFileSync(join(dir, file), renderPage(L, page, LANGS), "utf8");
     written++;
   }
-  /* keep legacy links working: login.html → the dashboard demo */
+  /* keep legacy links working: login.html → the dashboard demo (in the remembered language) */
   writeFileSync(
     join(dir, "login.html"),
-    `<!DOCTYPE html><html lang="${L.htmlLang}" dir="${L.dir}"><head><meta charset="utf-8"><title>JurisMind</title>` +
-      `<meta http-equiv="refresh" content="0; url=dashboard.html"></head><body></body></html>`,
+    `<!DOCTYPE html><html lang="${L.htmlLang}" dir="${L.dir}" data-lang="${L.code}"><head><meta charset="utf-8">` +
+      `<title>JurisMind</title>${langGuard(L)}` +
+      `<meta http-equiv="refresh" content="0; url=dashboard.html">` +
+      `<meta name="robots" content="noindex"></head>` +
+      `<body><p><a href="dashboard.html">JurisMind — dashboard</a></p>` +
+      `<script>location.replace("dashboard.html");</script></body></html>`,
     "utf8"
   );
   written++;

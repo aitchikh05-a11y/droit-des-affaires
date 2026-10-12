@@ -6,6 +6,33 @@
 <title>JurisMind — Apprends plus intelligemment. Pense plus loin.</title>
 <meta name="description" content="JurisMind est un parcours d’apprentissage adaptatif pour les étudiants en droit. Il détecte vos points faibles en droit des contrats, droit commercial et droit du travail, programme vos révisions et prépare l’exercice qui corrigera ce que vous êtes sur le point d’oublier.">
 <meta name="theme-color" content="#191923">
+<script data-lang-guard>
+(function () {
+  try {
+    var CODES = ["en", "fr", "ar"], HERE = "fr";
+    var raw = location.search;
+    if (raw.charAt(0) === "?") raw = raw.slice(1);
+    var parts = raw ? raw.split("&") : [];
+    var keep = [], asked = null, i, kv;
+    for (i = 0; i < parts.length; i++) {
+      kv = parts[i].split("=");
+      if (kv[0] === "lang") asked = decodeURIComponent(kv[1] || "").toLowerCase();
+      else if (parts[i]) keep.push(parts[i]);
+    }
+    var stored = null;
+    try { stored = localStorage.getItem("jurismind.lang"); } catch (e) {}
+    var want = asked && CODES.indexOf(asked) > -1 ? asked : stored;
+    if (asked && CODES.indexOf(asked) > -1) { try { localStorage.setItem("jurismind.lang", asked); } catch (e) {} }
+    if (!want || CODES.indexOf(want) < 0 || want === HERE) return;
+    var seg = location.pathname.split("/");
+    var file = seg.pop() || "index.html";
+    if (seg[seg.length - 1] === "fr" || seg[seg.length - 1] === "ar") seg.pop();
+    var target = seg.join("/") + "/" + (want === "en" ? "" : want + "/") + file +
+      (keep.length ? "?" + keep.join("&") : "") + location.hash;
+    location.replace(target);
+  } catch (e) {}
+})();
+</script>
 <meta property="og:title" content="JurisMind — Apprends plus intelligemment. Pense plus loin.">
 <meta property="og:description" content="JurisMind est un parcours d’apprentissage adaptatif pour les étudiants en droit. Il détecte vos points faibles en droit des contrats, droit commercial et droit du travail, programme vos révisions et prépare l’exercice qui corrigera ce que vous êtes sur le point d’oublier.">
 <meta property="og:type" content="website">
@@ -25,9 +52,30 @@
       <a href="#method">Méthode</a><a href="#retention">Rétention</a><a href="#subjects">Matières</a><a href="#tutor">Tuteur IA</a><a href="#faq">FAQ</a>
     </nav>
     <div class="head-actions">
-      <div class="lang" role="group" aria-label="Langue"><a href="../index.html" hreflang="en">English</a><a href="../fr/index.html" hreflang="fr" class="on" aria-current="true">Français</a><a href="../ar/index.html" hreflang="ar">العربية</a></div>
+      <div class="langpick" data-langpick>
+  <button type="button" class="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="langmenu-light-fr-indexhtml"
+          aria-label="Langue: Français">
+    <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17"/><path d="M12 3c2.4 3 2.4 15 0 18M12 3c-2.4 3-2.4 15 0 18"/></svg><span class="lang-code">FR</span>
+    <span class="chev"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+  </button>
+  <ul class="lang-menu" id="langmenu-light-fr-indexhtml" role="menu" hidden>
+    <li role="none"><a role="menuitemradio" href="../index.html?lang=en" hreflang="en" lang="en"
+        data-lang-option="en" aria-checked="false">
+        <span>English<br><span class="lh">EN · LTR</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li><li role="none"><a role="menuitemradio" href="../fr/index.html?lang=fr" hreflang="fr" lang="fr"
+        data-lang-option="fr" aria-checked="true">
+        <span>Français<br><span class="lh">FR · LTR</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li><li role="none"><a role="menuitemradio" href="../ar/index.html?lang=ar" hreflang="ar" lang="ar"
+        data-lang-option="ar" aria-checked="false">
+        <span>العربية<br><span class="lh">AR · RTL</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li>
+  </ul>
+</div>
       <a class="btn btn-ghost btn-sm hide-sm" href="../tutor.html">Interroger le tuteur</a>
-      <a class="btn btn-lime btn-sm" href="../dashboard.html">Ouvrir le tableau de bord</a>
+      <a class="btn btn-lime btn-sm hide-xs" href="../dashboard.html">Ouvrir le tableau de bord</a>
       <button class="burger" data-burger-nav aria-label="Menu"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     </div>
   </div>
@@ -355,7 +403,28 @@
     <div class="foot-bottom">
       <span>© 2026 JurisMind. Projet de démonstration.</span>
       <div class="foot-legal"><a href="../index.html">Confidentialité</a><a href="../index.html">Conditions</a><a href="../index.html">Accessibilité</a></div>
-      <div class="lang" role="group" aria-label="Langue"><a href="../index.html" hreflang="en">English</a><a href="../fr/index.html" hreflang="fr" class="on" aria-current="true">Français</a><a href="../ar/index.html" hreflang="ar">العربية</a></div>
+      <div class="langpick langpick-dark" data-langpick>
+  <button type="button" class="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="langmenu-dark-fr-indexhtml"
+          aria-label="Langue: Français">
+    <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17"/><path d="M12 3c2.4 3 2.4 15 0 18M12 3c-2.4 3-2.4 15 0 18"/></svg><span class="lang-code">FR</span>
+    <span class="chev"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+  </button>
+  <ul class="lang-menu" id="langmenu-dark-fr-indexhtml" role="menu" hidden>
+    <li role="none"><a role="menuitemradio" href="../index.html?lang=en" hreflang="en" lang="en"
+        data-lang-option="en" aria-checked="false">
+        <span>English<br><span class="lh">EN · LTR</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li><li role="none"><a role="menuitemradio" href="../fr/index.html?lang=fr" hreflang="fr" lang="fr"
+        data-lang-option="fr" aria-checked="true">
+        <span>Français<br><span class="lh">FR · LTR</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li><li role="none"><a role="menuitemradio" href="../ar/index.html?lang=ar" hreflang="ar" lang="ar"
+        data-lang-option="ar" aria-checked="false">
+        <span>العربية<br><span class="lh">AR · RTL</span></span>
+        <span class="tick"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 13 5 5L20 6"/></svg></span>
+      </a></li>
+  </ul>
+</div>
     </div>
   </div>
 </footer>

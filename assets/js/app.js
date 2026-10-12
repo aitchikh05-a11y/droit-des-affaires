@@ -529,9 +529,88 @@
     });
   };
 
+  /* ---------- language: one button, remembered everywhere ---------- */
+  var LANG_KEY = "jurismind.lang";
+  var LANGS = ["en", "fr", "ar"];
+
+  JM.langPref = function () {
+    try { return localStorage.getItem(LANG_KEY); } catch (e) { return null; }
+  };
+  JM.setLangPref = function (code) {
+    if (LANGS.indexOf(code) < 0) return;
+    try { localStorage.setItem(LANG_KEY, code); } catch (e) { /* private mode */ }
+  };
+  /** equivalent page in another language, derived from the current URL */
+  JM.langHref = function (code) {
+    var seg = location.pathname.split("/");
+    var file = seg.pop() || "index.html";
+    if (seg[seg.length - 1] === "fr" || seg[seg.length - 1] === "ar") seg.pop();
+    return seg.join("/") + "/" + (code === "en" ? "" : code + "/") + file;
+  };
+
+  JM.initLangPicker = function () {
+    var picks = JM.$$("[data-langpick]");
+    if (!picks.length) return;
+
+    function close(pick) {
+      pick.classList.remove("open");
+      var b = JM.$(".lang-btn", pick);
+      var m = JM.$(".lang-menu", pick);
+      if (b) b.setAttribute("aria-expanded", "false");
+      if (m) m.hidden = true;
+    }
+    function open(pick) {
+      picks.forEach(function (p) { if (p !== pick) close(p); });
+      pick.classList.add("open");
+      var b = JM.$(".lang-btn", pick);
+      var m = JM.$(".lang-menu", pick);
+      if (b) b.setAttribute("aria-expanded", "true");
+      if (m) m.hidden = false;
+    }
+
+    picks.forEach(function (pick) {
+      var btn = JM.$(".lang-btn", pick);
+      var menu = JM.$(".lang-menu", pick);
+      if (!btn || !menu) return;
+
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (pick.classList.contains("open")) close(pick); else open(pick);
+      });
+
+      /* remember the choice immediately, before the page navigates */
+      JM.$$("[data-lang-option]", menu).forEach(function (a) {
+        var code = a.getAttribute("data-lang-option");
+        /* keep the current query (which exercise, which subject…) minus ?lang */
+        var extra = location.search
+          .replace(/^\?/, "")
+          .split("&")
+          .filter(function (kv) {
+            return kv && kv.split("=")[0] !== "lang";
+          });
+        try {
+          a.setAttribute("href", JM.langHref(code) + "?lang=" + code + (extra.length ? "&" + extra.join("&") : "") + location.hash);
+        } catch (e) { /* keep the static href */ }
+        a.addEventListener("click", function () { JM.setLangPref(code); });
+      });
+
+      pick.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") { close(pick); btn.focus(); }
+      });
+    });
+
+    document.addEventListener("click", function () {
+      picks.forEach(close);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") picks.forEach(close);
+    });
+  };
+
   /* boot */
   document.addEventListener("DOMContentLoaded", function () {
     JM.initShell();
+    JM.initLangPicker();
     var page = document.body.getAttribute("data-page") || "landing";
     if (JM.pages && JM.pages[page]) JM.pages[page]();
     JM.reveal();
