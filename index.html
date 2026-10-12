@@ -24,10 +24,13 @@
     var want = asked && CODES.indexOf(asked) > -1 ? asked : stored;
     if (asked && CODES.indexOf(asked) > -1) { try { localStorage.setItem("jurismind.lang", asked); } catch (e) {} }
     if (!want || CODES.indexOf(want) < 0 || want === HERE) return;
+    /* relative target: works on a server, in a sub-folder and on file:// */
     var seg = location.pathname.split("/");
     var file = seg.pop() || "index.html";
-    if (seg[seg.length - 1] === "fr" || seg[seg.length - 1] === "ar") seg.pop();
-    var target = seg.join("/") + "/" + (want === "en" ? "" : want + "/") + file +
+    var cur = seg[seg.length - 1];
+    var inSub = cur === "fr" || cur === "ar";
+    var up = inSub ? "../" : "";
+    var target = up + (want === "en" ? "" : want + "/") + file +
       (keep.length ? "?" + keep.join("&") : "") + location.hash;
     location.replace(target);
   } catch (e) {}
@@ -54,6 +57,7 @@
     <div class="head-actions">
       <div class="langpick" data-langpick>
   <button type="button" class="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="langmenu-light-en-indexhtml"
+          title="Language · اللغة · Langue"
           aria-label="Language: English">
     <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17"/><path d="M12 3c2.4 3 2.4 15 0 18M12 3c-2.4 3-2.4 15 0 18"/></svg><span class="lang-code">EN</span>
     <span class="chev"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
@@ -405,6 +409,7 @@
       <div class="foot-legal"><a href="index.html">Privacy</a><a href="index.html">Terms</a><a href="index.html">Accessibility</a></div>
       <div class="langpick langpick-dark" data-langpick>
   <button type="button" class="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="langmenu-dark-en-indexhtml"
+          title="Language · اللغة · Langue"
           aria-label="Language: English">
     <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17"/><path d="M12 3c2.4 3 2.4 15 0 18M12 3c-2.4 3-2.4 15 0 18"/></svg><span class="lang-code">EN</span>
     <span class="chev"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>

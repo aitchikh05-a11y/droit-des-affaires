@@ -540,12 +540,14 @@
     if (LANGS.indexOf(code) < 0) return;
     try { localStorage.setItem(LANG_KEY, code); } catch (e) { /* private mode */ }
   };
-  /** equivalent page in another language, derived from the current URL */
+  /** equivalent page in another language, as a RELATIVE link so that it also
+      works when the site is opened from disk (file://) or a sub-folder */
   JM.langHref = function (code) {
     var seg = location.pathname.split("/");
     var file = seg.pop() || "index.html";
-    if (seg[seg.length - 1] === "fr" || seg[seg.length - 1] === "ar") seg.pop();
-    return seg.join("/") + "/" + (code === "en" ? "" : code + "/") + file;
+    var cur = seg[seg.length - 1];
+    var inSub = cur === "fr" || cur === "ar";
+    return (inSub ? "../" : "") + (code === "en" ? "" : code + "/") + file;
   };
 
   JM.initLangPicker = function () {
@@ -561,6 +563,13 @@
     }
     function open(pick) {
       picks.forEach(function (p) { if (p !== pick) close(p); });
+      var btn = JM.$(".lang-btn", pick);
+      /* flip upwards when there is more room above (footer, bottom of the page) */
+      if (btn) {
+        var r = btn.getBoundingClientRect();
+        var below = (window.innerHeight || 0) - r.bottom;
+        pick.classList.toggle("drop-up", below < 260 && r.top > below && r.top > 0);
+      }
       pick.classList.add("open");
       var b = JM.$(".lang-btn", pick);
       var m = JM.$(".lang-menu", pick);

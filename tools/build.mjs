@@ -133,6 +133,7 @@ function langPicker(L, ctx, all, tone = "light") {
   const id = `langmenu-${tone}-${L.code}-${ctx.pageFile.replace(/\W+/g, "")}`;
   return `<div class="langpick${tone === "dark" ? " langpick-dark" : ""}" data-langpick>
   <button type="button" class="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="${id}"
+          title="${esc(L.ctas.switchLanguage)} · اللغة · Langue"
           aria-label="${esc(L.ctas.switchLanguage)}: ${esc(L.native)}">
     ${icon("globe")}<span class="lang-code">${L.code.toUpperCase()}</span>
     <span class="chev">${icon("chevron")}</span>
@@ -171,10 +172,13 @@ function langGuard(L) {
     var want = asked && CODES.indexOf(asked) > -1 ? asked : stored;
     if (asked && CODES.indexOf(asked) > -1) { try { localStorage.setItem("jurismind.lang", asked); } catch (e) {} }
     if (!want || CODES.indexOf(want) < 0 || want === HERE) return;
+    /* relative target: works on a server, in a sub-folder and on file:// */
     var seg = location.pathname.split("/");
     var file = seg.pop() || "index.html";
-    if (seg[seg.length - 1] === "fr" || seg[seg.length - 1] === "ar") seg.pop();
-    var target = seg.join("/") + "/" + (want === "en" ? "" : want + "/") + file +
+    var cur = seg[seg.length - 1];
+    var inSub = cur === "fr" || cur === "ar";
+    var up = inSub ? "../" : "";
+    var target = up + (want === "en" ? "" : want + "/") + file +
       (keep.length ? "?" + keep.join("&") : "") + location.hash;
     location.replace(target);
   } catch (e) {}
