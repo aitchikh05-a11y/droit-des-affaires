@@ -14,12 +14,33 @@ import { fileURLToPath } from "node:url";
 import en from "./content/en.mjs";
 import fr from "./content/fr.mjs";
 import ar from "./content/ar.mjs";
+import { seoByLang } from "./content/seo.mjs";
+import { SOURCES } from "./content/evidence.mjs";
+import { llmsTxt } from "./llms.mjs";
+import {
+  INFO_PAGES,
+  LANG_CODES,
+  LOCALES,
+  LOGO_IMAGE_PATH,
+  SECURITY_ADVISORY_URL,
+  SECURITY_EMAIL,
+  OG_IMAGE_PATH,
+  PAGES,
+  REPO_URL,
+  SITE_MODIFIED,
+  SITE_PUBLISHED,
+  canonicalUrl,
+  getSiteUrl
+} from "./site.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const LANGS = [en, fr, ar];
-const PAGES = ["index", "dashboard", "path", "practice", "subjects", "tutor"];
+const SITE_URL = getSiteUrl();
+/* Attach build-only editorial copy without adding it to the runtime jm-content JSON. */
+const LANGS = [en, fr, ar].map((L) => ({ ...L, seo: seoByLang[L.code] }));
 const GA_MEASUREMENT_ID = "G-6VYYNLG1L0";
 const GOOGLE_SITE_VERIFICATION_FILE = "googledb2edb8cbf9baa93.html";
+const OG_IMAGE = SITE_URL + OG_IMAGE_PATH;
+const LOGO_IMAGE = SITE_URL + LOGO_IMAGE_PATH;
 
 function googleAnalyticsTag() {
   return `<!-- Google tag (gtag.js) — JurisMind (Stream ID: 16109126475, https://droit-des-affaires-dqt.pages.dev) -->
@@ -100,8 +121,10 @@ const flag = (code, cls = "flag") =>
 /* the landing burger toggles this panel (see pages.landing) */
 const MOBILE_NAV = (L, ctx) =>
   `<div class="mobile-nav" id="mobile-nav">${L.nav.landing
-    .map((n) => `<a href="#${n.href.replace("#", "")}">${esc(n.label)}</a>`)
-    .join("")}<a href="${ctx.href("dashboard.html")}" class="btn btn-lime btn-block" style="margin:14px 22px;width:auto">${esc(
+    .map((n) => `<a href="${navHref(n, ctx)}">${esc(n.label)}</a>`)
+    .join("")}<a href="${ctx.href("about.html")}">${esc(L.seo.nav.about)}</a><a href="${ctx.href("contact.html")}">${esc(
+    L.seo.nav.contact
+  )}</a><a href="${ctx.href("dashboard.html")}" class="btn btn-lime btn-block" style="margin:14px 22px;width:auto">${esc(
     L.ctas.openDashboard
   )}</a></div>`;
 
@@ -126,33 +149,280 @@ function makeCtx(L, pageFile) {
   };
 }
 
+/* ---------- shared SEO / provenance helpers ---------- */
+function navHref(n, ctx) {
+  return n.href.startsWith("#") ? n.href : ctx.href(n.href);
+}
+
+function linkMarkup(link, ctx) {
+  const external = /^(https?:|mailto:)/.test(link.href);
+  const href = external ? link.href : ctx.href(link.href);
+  return `<a href="${esc(href)}"${external ? ' rel="noopener"' : ""}>${esc(link.label)}</a>`;
+}
+
+function byline(L, ctx, cls = "byline") {
+  const S = L.seo;
+  return `<p class="${cls}">
+    <span>${esc(S.byLabel)} <a rel="author" href="${ctx.href("about.html")}">${esc(S.author)}</a></span>
+    <span aria-hidden="true">·</span>
+    <span>${esc(S.publishedLabel)} <time datetime="${SITE_PUBLISHED}">${esc(S.publishedDisplay)}</time></span>
+    <span aria-hidden="true">·</span>
+    <span>${esc(S.updatedLabel)} <time datetime="${SITE_MODIFIED}">${esc(S.updatedDisplay)}</time></span>
+  </p>`;
+}
+
+function pageTitle(L, page) {
+  if (page === "index") return L.meta.title;
+  if (L.seo.pages[page]) return `${L.seo.pages[page].title} — JurisMind`;
+  const app = {
+    dashboard: L.dash.kicker,
+    path: L.path.kicker,
+    practice: L.practice.h1,
+    subjects: L.subjectsPage.kicker,
+    tutor: L.tutor.kicker
+  };
+  return `${app[page]} — JurisMind`;
+}
+
+function pageDescription(L, page) {
+  return (L.seo.pages[page] && L.seo.pages[page].description) || L.meta.description;
+}
+
+/* One connected JSON-LD graph per page: entity, site, author, image, dates,
+   typed content and breadcrumbs. Everything here is also visible in the HTML. */
+function structuredData(L, page, title, description, canonical) {
+  const orgId = `${SITE_URL}/#organization`;
+  const editorialId = `${SITE_URL}/#editorial-team`;
+  const siteId = `${SITE_URL}/#website`;
+  const imageId = `${SITE_URL}/#og-image`;
+  const logoId = `${SITE_URL}/#logo`;
+  const webPageId = `${canonical}#webpage`;
+  const pageType = page === "about" ? "AboutPage" : page === "contact" ? "ContactPage" : "WebPage";
+
+  const graph = [
+    {
+      "@type": "Organization",
+      "@id": orgId,
+      name: "JurisMind",
+      url: `${SITE_URL}/`,
+      description: en.meta.description,
+      logo: { "@id": logoId },
+      image: { "@id": imageId },
+      sameAs: [REPO_URL],
+      knowsAbout: [
+        "Legal education",
+        "Retrieval practice",
+        "Distributed practice",
+        "Contract law",
+        "Commercial law",
+        "Labour law"
+      ],
+      contactPoint: [
+        {
+          "@type": "ContactPoint",
+          contactType: "editorial and product feedback",
+          url: canonicalUrl("en", "contact", SITE_URL),
+          availableLanguage: LANG_CODES
+        },
+        {
+          "@type": "ContactPoint",
+          contactType: "security",
+          email: SECURITY_EMAIL,
+          url: SECURITY_ADVISORY_URL,
+          availableLanguage: LANG_CODES
+        }
+      ]
+    },
+    {
+      "@type": "Organization",
+      "@id": editorialId,
+      name: L.seo.author,
+      url: canonicalUrl(L.code, "about", SITE_URL),
+      parentOrganization: { "@id": orgId }
+    },
+    {
+      "@type": "WebSite",
+      "@id": siteId,
+      url: `${SITE_URL}/`,
+      name: "JurisMind",
+      description: en.meta.description,
+      publisher: { "@id": orgId },
+      inLanguage: LANG_CODES
+    },
+    {
+      "@type": "ImageObject",
+      "@id": imageId,
+      url: OG_IMAGE,
+      contentUrl: OG_IMAGE,
+      width: 1200,
+      height: 630,
+      caption: L.seo.ogAlt
+    },
+    {
+      "@type": "ImageObject",
+      "@id": logoId,
+      url: LOGO_IMAGE,
+      contentUrl: LOGO_IMAGE,
+      width: 512,
+      height: 512,
+      caption: "JurisMind mark"
+    },
+    {
+      "@type": pageType,
+      "@id": webPageId,
+      url: canonical,
+      name: title,
+      description,
+      isPartOf: { "@id": siteId },
+      about: { "@id": orgId },
+      primaryImageOfPage: { "@id": imageId },
+      inLanguage: L.htmlLang,
+      author: { "@id": editorialId },
+      creator: { "@id": editorialId },
+      publisher: { "@id": orgId },
+      datePublished: SITE_PUBLISHED,
+      dateModified: SITE_MODIFIED
+    }
+  ];
+
+  if (page === "index") {
+    graph[5].mainEntity = { "@id": `${canonical}#learning-resource` };
+    graph.push(
+      {
+        "@type": "Article",
+        "@id": `${canonical}#evidence-article`,
+        isPartOf: { "@id": webPageId },
+        mainEntityOfPage: { "@id": webPageId },
+        headline: L.seo.evidence.title,
+        description: L.seo.evidence.lede,
+        articleSection: "Evidence-based learning",
+        inLanguage: L.htmlLang,
+        author: { "@id": editorialId },
+        publisher: { "@id": orgId },
+        datePublished: SITE_PUBLISHED,
+        dateModified: SITE_MODIFIED,
+        citation: SOURCES.map((s) => ({
+          "@type": "ScholarlyArticle",
+          "@id": s.doi,
+          headline: s.title,
+          author: s.authors,
+          datePublished: s.year,
+          url: s.url,
+          sameAs: s.doi
+        })),
+        about: [
+          { "@type": "Thing", name: "Retrieval practice" },
+          { "@type": "Thing", name: "Distributed practice" },
+          { "@type": "Thing", name: "Legal education" }
+        ]
+      },
+      {
+        "@type": "LearningResource",
+        "@id": `${canonical}#learning-resource`,
+        name: "JurisMind adaptive law revision",
+        description: L.meta.description,
+        url: canonical,
+        inLanguage: LANG_CODES,
+        isAccessibleForFree: true,
+        learningResourceType: "Adaptive case questions and spaced review",
+        educationalLevel: "Undergraduate legal education",
+        teaches: L.subjects.slice(0, 8).map((s) => s.name),
+        author: { "@id": editorialId },
+        publisher: { "@id": orgId },
+        datePublished: SITE_PUBLISHED,
+        dateModified: SITE_MODIFIED
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${canonical}#faq-page`,
+        name: L.landing.faq.title,
+        url: `${canonical}#faq`,
+        isPartOf: { "@id": webPageId },
+        inLanguage: L.htmlLang,
+        mainEntity: L.landing.faq.items.map((f) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: { "@type": "Answer", text: f.a }
+        }))
+      }
+    );
+  } else {
+    graph[5].breadcrumb = { "@id": `${canonical}#breadcrumb` };
+    graph.push({
+      "@type": "BreadcrumbList",
+      "@id": `${canonical}#breadcrumb`,
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "JurisMind", item: `${SITE_URL}/` },
+        { "@type": "ListItem", position: 2, name: title, item: canonical }
+      ]
+    });
+  }
+
+  const json = JSON.stringify({ "@context": "https://schema.org", "@graph": graph }).replace(/</g, "\\u003c");
+  return `<script type="application/ld+json">${json}</script>`;
+}
+
 /* ---------- head ---------- */
 function head(L, ctx, page) {
-  const titles = {
-    index: L.meta.title,
-    dashboard: `${L.dash.kicker} — JurisMind`,
-    path: `${L.path.kicker} — JurisMind`,
-    practice: `${L.practice.h1} — JurisMind`,
-    subjects: `${L.subjectsPage.kicker} — JurisMind`,
-    tutor: `${L.tutor.kicker} — JurisMind`
-  };
+  const title = pageTitle(L, page);
+  const description = pageDescription(L, page);
+  const canonical = canonicalUrl(L.code, page, SITE_URL);
+  const locale = LOCALES[L.code];
+  const ogType = page === "index" ? "article" : "website";
   const favicon =
     "data:image/svg+xml," +
     encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#191923"/><path d="M11 8v11c0 3 2 5 5 5s5-2 5-5" stroke="#C6FF4D" stroke-width="3.4" fill="none" stroke-linecap="round"/></svg>`
     );
+  const alternates = LANG_CODES.map(
+    (code) => `<link rel="alternate" hreflang="${code}" href="${canonicalUrl(code, page, SITE_URL)}">`
+  ).join("\n");
+  const localeAlternates = LANG_CODES.filter((code) => code !== L.code)
+    .map((code) => `<meta property="og:locale:alternate" content="${LOCALES[code]}">`)
+    .join("\n");
+
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${googleAnalyticsTag()}
-<title>${esc(titles[page])}</title>
-<meta name="description" content="${esc(L.meta.description)}">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(description)}">
+<meta name="author" content="${esc(L.seo.author)}">
+<meta name="date" content="${SITE_MODIFIED}">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
 <meta name="theme-color" content="#191923">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="google-site-verification" content="googledb2edb8cbf9baa93">
+<link rel="canonical" href="${canonical}">
+${alternates}
+<link rel="alternate" hreflang="x-default" href="${SITE_URL}/">
+<link rel="alternate" type="text/markdown" title="llms.txt" href="${SITE_URL}/llms.txt">
+<link rel="sitemap" type="application/xml" title="JurisMind sitemap" href="${SITE_URL}/sitemap.xml">
+<link rel="author" href="${canonicalUrl(L.code, "about", SITE_URL)}">
+<link rel="me" href="${REPO_URL}">
 ${langGuard(L)}
-<meta property="og:title" content="${esc(titles[page])}">
-<meta property="og:description" content="${esc(L.meta.description)}">
-<meta property="og:type" content="website">
+${structuredData(L, page, title, description, canonical)}
+<meta property="og:site_name" content="JurisMind">
+<meta property="og:locale" content="${locale}">
+${localeAlternates}
+<meta property="og:type" content="${ogType}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:url" content="${canonical}">
+<meta property="og:image" content="${OG_IMAGE}">
+<meta property="og:image:secure_url" content="${OG_IMAGE}">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${esc(L.seo.ogAlt)}">
+<meta property="article:published_time" content="${SITE_PUBLISHED}">
+<meta property="article:modified_time" content="${SITE_MODIFIED}">
+<meta property="article:author" content="${canonicalUrl(L.code, "about", SITE_URL)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(description)}">
+<meta name="twitter:url" content="${canonical}">
+<meta name="twitter:image" content="${OG_IMAGE}">
+<meta name="twitter:image:alt" content="${esc(L.seo.ogAlt)}">
 <link rel="icon" href="${favicon}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -228,7 +498,7 @@ function landingHeader(L, ctx, all) {
       <span class="brand-mark">${icon("scale")}</span> JurisMind
     </a>
     <nav class="site-nav" aria-label="${esc(L.brand.tagline)}">
-      ${L.nav.landing.map((n) => `<a href="${n.href}">${esc(n.label)}</a>`).join("")}
+      ${L.nav.landing.map((n) => `<a href="${navHref(n, ctx)}">${esc(n.label)}</a>`).join("")}
     </nav>
     <div class="head-actions">
       ${langPicker(L, ctx, all, "light")}
@@ -319,16 +589,22 @@ function footer(L, ctx) {
       ${L.footer.columns
         .map(
           (c) => `<div>
-        <h5>${esc(c.t)}</h5>
+        <h2 class="foot-title">${esc(c.t)}</h2>
         <div class="foot-links">${c.links.map((l) => `<a href="${ctx.href(l.href)}">${esc(l.label)}</a>`).join("")}</div>
       </div>`
         )
         .join("")}
     </div>
+    <div class="foot-provenance">
+      ${byline(L, ctx, "site-provenance")}
+      <p class="tiny">${esc(L.seo.bylineNote)}</p>
+    </div>
     <div class="foot-bottom">
       <span>${esc(L.footer.rights)}</span>
       <span class="pill pill-outline tiny" style="border-color:rgba(101,214,176,.35);color:var(--mint);gap:6px" title="AES-256-GCM + PBKDF2-SHA256 + SHA-384 SRI">${icon("shield")} AES-256-GCM · SHA-384 SRI</span>
-      <div class="foot-legal">${L.footer.legal.map((l) => `<a href="${ctx.href("index.html")}">${esc(l.label)}</a>`).join("")}</div>
+      <nav class="foot-legal" aria-label="${esc(L.seo.nav.about)} · ${esc(L.seo.nav.contact)}">${L.footer.legal
+        .map((l) => `<a href="${ctx.href(l.href)}">${esc(l.label)}</a>`)
+        .join("")}</nav>
       ${langPicker(L, ctx, LANGS, "dark")}
     </div>
   </div>
@@ -397,6 +673,8 @@ function landingPage(L, ctx, all) {
       <p class="kicker kicker-lime">${esc(H.eyebrow)}</p>
       <h1>${esc(H.h1)}</h1>
       <p class="hero-lede">${esc(H.lede)}</p>
+      ${byline(L, ctx)}
+      <p class="byline-note tiny">${esc(L.seo.bylineNote)}</p>
       <div class="hero-cta">
         <a class="btn btn-lime btn-lg" href="${ctx.href("dashboard.html")}">${icon("bolt")} ${esc(L.ctas.start)}</a>
         <a class="btn btn-ghost btn-lg" href="${ctx.href("dashboard.html")}">${esc(L.ctas.demo)}</a>
@@ -449,18 +727,18 @@ function landingPage(L, ctx, all) {
       <p class="kicker kicker-coral">${esc(H.retention.kicker)}</p>
       <h2>${esc(H.retention.title)}</h2>
       <p class="muted">${esc(H.retention.lede)}</p>
-      <div class="blist mt-3">
+      <ul class="blist mt-3">
         ${H.retention.bullets
           .map(
-            (b, i) => `<div class="bitem">
+            (b, i) => `<li class="bitem">
           <span class="bicon ${["bicon-lime", "bicon-mint", "bicon-coral"][i] || ""}">${icon(
               ["brain", "repeat", "alert"][i] || "check"
             )}</span>
-          <div><h4>${esc(b.t)}</h4><p class="small muted mb-0">${esc(b.d)}</p></div>
-        </div>`
+          <div><h3>${esc(b.t)}</h3><p class="small muted mb-0">${esc(b.d)}</p></div>
+        </li>`
           )
           .join("")}
-      </div>
+      </ul>
     </div>
     <div class="card chart-card reveal">
       <div class="between mb-2">
@@ -514,6 +792,92 @@ function landingPage(L, ctx, all) {
   </div>
 </section>
 
+<section class="section" id="evidence">
+  <div class="container">
+    <div class="sec-head">
+      <p class="kicker kicker-lime">${esc(L.seo.evidence.kicker)}</p>
+      <h2>${esc(L.seo.evidence.title)}</h2>
+      <p class="muted evidence-lede">${esc(L.seo.evidence.lede)}</p>
+    </div>
+    <div class="evidence-grid">
+      <article class="card reveal">
+        <h3>${esc(L.seo.evidence.takeawaysTitle)}</h3>
+        <ul class="evidence-list">
+          ${L.seo.evidence.takeaways.map((x) => `<li><strong>${esc(x.t)}</strong> ${esc(x.d)}</li>`).join("")}
+        </ul>
+      </article>
+      <aside class="card evidence-quotes reveal" aria-label="${esc(L.seo.evidence.quoteTitle)}">
+        <h3>${esc(L.seo.evidence.quoteTitle)}</h3>
+        ${SOURCES.filter((s) => s.quote)
+          .map(
+            (s) => `<figure class="evidence-quote">
+          <blockquote cite="${s.url}" lang="en" dir="ltr"><p>“${esc(s.quote)}”</p></blockquote>
+          <figcaption>— <cite>${esc(s.short)}</cite> · <a href="${s.url}" rel="noopener">${esc(
+              L.seo.evidence.sourceLinkLabel
+            )}</a></figcaption>
+        </figure>`
+          )
+          .join("")}
+        <p class="tiny muted mb-0">${esc(L.seo.evidence.quoteNote)}</p>
+      </aside>
+    </div>
+    <div class="card geo-table-card mt-3 reveal">
+      <h3>${esc(L.seo.evidence.tableTitle)}</h3>
+      <div class="geo-table-wrap">
+        <table class="geo-table">
+          <caption>${esc(L.seo.evidence.tableCaption)}</caption>
+          <thead>
+            <tr>${L.seo.evidence.tableHeaders.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${L.seo.evidence.tableRows
+              .map(
+                (row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join("")}</tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card reference-card mt-3 reveal">
+      <h3>${esc(L.seo.evidence.referencesTitle)}</h3>
+      <ol class="reference-list">
+        ${SOURCES.map(
+          (s, i) => `<li>
+          <cite><a href="${s.url}" rel="noopener" lang="en" dir="ltr">${esc(s.title)}</a></cite>
+          <span>${esc(s.authors)} (${s.year}). <span lang="en" dir="ltr">${esc(s.journal)}</span>. ${esc(
+            L.seo.evidence.sourceNotes[i]
+          )} <a href="${s.doi}" rel="noopener">DOI</a></span>
+        </li>`
+        ).join("")}
+      </ol>
+      <p class="tiny muted mb-0">${esc(L.seo.evidence.referencesNote)}</p>
+    </div>
+  </div>
+</section>
+
+<section class="section section-tight grid-bg" id="trust">
+  <div class="container">
+    <div class="sec-head">
+      <p class="kicker">${esc(L.seo.identity.kicker)}</p>
+      <h2>${esc(L.seo.identity.title)}</h2>
+      <p class="muted">${esc(L.seo.identity.lede)}</p>
+    </div>
+    <div class="card identity-card reveal">
+      <h3>${esc(L.seo.identity.contactTitle)}</h3>
+      <p class="muted">${esc(L.seo.identity.contactText)}</p>
+      <ul class="evidence-list">
+        ${L.seo.identity.points.map((x) => `<li>${esc(x)}</li>`).join("")}
+      </ul>
+      <div class="identity-links">
+        <a class="link-arrow" href="${ctx.href("about.html")}">${esc(L.seo.identity.aboutLabel)}</a>
+        <a class="link-arrow" href="${ctx.href("contact.html")}">${esc(L.seo.identity.contactLabel)}</a>
+        <a class="link-arrow" href="${REPO_URL}" rel="noopener">${esc(L.seo.identity.sourceLabel)}</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="section" id="subjects">
   <div class="container">
     <div class="sec-head">
@@ -546,7 +910,7 @@ function landingPage(L, ctx, all) {
       <h2>${esc(H.journey.title)}</h2>
     </div>
     <div class="journey">
-      ${H.journey.steps.map((s) => `<div class="jstep"><h4>${esc(s.t)}</h4><p class="small muted">${esc(s.d)}</p></div>`).join("")}
+      ${H.journey.steps.map((s) => `<div class="jstep"><h3>${esc(s.t)}</h3><p class="small muted">${esc(s.d)}</p></div>`).join("")}
     </div>
   </div>
 </section>
@@ -590,7 +954,7 @@ function landingPage(L, ctx, all) {
     <div class="faq">
       ${H.faq.items
         .map(
-          (f) => `<details><summary>${esc(f.q)}</summary><div class="faq-body small">${esc(f.a)}</div></details>`
+          (f) => `<article class="faq-item"><h3>${esc(f.q)}</h3><p class="faq-body small">${esc(f.a)}</p></article>`
         )
         .join("")}
     </div>
@@ -838,7 +1202,7 @@ function practicePage(L, ctx) {
 <div id="session" class="hide"></div>
 
 <noscript>
-  <div class="empty"><h3>JurisMind</h3><p class="muted">${esc(P.sub)}</p><p class="small">${esc(L.tutor.disclaimer)}</p></div>
+  <div class="empty"><h2 class="noscript-title">JurisMind</h2><p class="muted">${esc(P.sub)}</p><p class="small">${esc(L.tutor.disclaimer)}</p></div>
 </noscript>`;
 }
 
@@ -933,6 +1297,82 @@ function tutorPage(L, ctx) {
 </div>`;
 }
 
+/* ---------- editorial / trust pages ---------- */
+function infoHeader(L, ctx, all, page) {
+  const N = L.seo.nav;
+  const current = (target) => (page === target ? ' aria-current="page"' : "");
+  return `<header class="site-head info-head">
+  <div class="container bar">
+    <a class="brand" href="${ctx.href("index.html")}">
+      <span class="brand-mark">${icon("scale")}</span> JurisMind
+    </a>
+    <nav class="site-nav info-nav" aria-label="${esc(N.about)} · ${esc(N.contact)}">
+      <a href="${ctx.href("index.html")}">${esc(N.home)}</a>
+      <a href="${ctx.href("about.html")}"${current("about")}>${esc(N.about)}</a>
+      <a href="${ctx.href("contact.html")}"${current("contact")}>${esc(N.contact)}</a>
+      <a href="${ctx.href("index.html#evidence")}">${esc(N.evidence)}</a>
+    </nav>
+    <div class="head-actions">
+      ${langPicker(L, ctx, all, "light")}
+      <a class="btn btn-lime btn-sm hide-xs" href="${ctx.href("dashboard.html")}">${esc(N.openApp)}</a>
+    </div>
+  </div>
+</header>`;
+}
+
+function infoPage(L, ctx, page) {
+  const P = L.seo.pages[page];
+  const sections = P.sections
+    .map(
+      (section) => `<section class="info-section">
+      <h2>${esc(section.title)}</h2>
+      ${section.body.map((paragraph) => `<p>${esc(paragraph)}</p>`).join("")}
+      ${section.list ? `<ul class="info-list">${section.list.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      ${section.links ? `<p class="info-links">${section.links.map((link) => linkMarkup(link, ctx)).join("")}</p>` : ""}
+    </section>`
+    )
+    .join("");
+  const table = P.table
+    ? `<section class="info-section">
+      <h2>${esc(P.table.title)}</h2>
+      <div class="geo-table-wrap">
+        <table class="geo-table">
+          <caption class="sr">${esc(P.table.title)}</caption>
+          <thead><tr>${P.table.headers.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead>
+          <tbody>${P.table.rows.map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
+        </table>
+      </div>
+    </section>`
+    : "";
+
+  return `<section class="info-hero">
+  <div class="container">
+    <p class="kicker kicker-lime">${esc(P.kicker)}</p>
+    <h1>${esc(P.title)}</h1>
+    <p class="info-lede">${esc(P.lede)}</p>
+    ${byline(L, ctx)}
+  </div>
+</section>
+<div class="container info-body">
+  <article class="info-content">${sections}${table}</article>
+  <aside class="info-aside">
+    <div class="card">
+      <h2>${esc(L.seo.identity.title)}</h2>
+      <p class="small muted">${esc(L.seo.identity.lede)}</p>
+      <div class="info-links info-links-stack">
+        <a class="link-arrow" href="${ctx.href("about.html")}">${esc(L.seo.nav.about)}</a>
+        <a class="link-arrow" href="${ctx.href("contact.html")}">${esc(L.seo.nav.contact)}</a>
+        <a class="link-arrow" href="${ctx.href("index.html#evidence")}">${esc(L.seo.nav.evidence)}</a>
+        <a class="link-arrow" href="${REPO_URL}" rel="noopener">${esc(L.seo.identity.sourceLabel)}</a>
+      </div>
+    </div>
+    <div class="card info-note">
+      <p class="tiny muted mb-0">${esc(L.footer.disclaimer)}</p>
+    </div>
+  </aside>
+</div>`;
+}
+
 /* ---------- page assembly ---------- */
 const BUILDERS = {
   index: (L, ctx, all) => ({ body: landingPage(L, ctx, all), chrome: "landing" }),
@@ -942,6 +1382,9 @@ const BUILDERS = {
   subjects: (L, ctx) => ({ body: subjectsPage(L, ctx), chrome: "app" }),
   tutor: (L, ctx) => ({ body: tutorPage(L, ctx), chrome: "app" })
 };
+for (const page of INFO_PAGES) {
+  BUILDERS[page] = (L, ctx) => ({ body: infoPage(L, ctx, page), chrome: "info" });
+}
 
 const TITLES = {
   index: (L) => L.brand.name,
@@ -951,12 +1394,15 @@ const TITLES = {
   subjects: (L) => L.nav.app[3].label,
   tutor: (L) => L.nav.app[4].label
 };
+for (const page of INFO_PAGES) TITLES[page] = (L) => L.seo.pages[page].title;
 
 function renderPage(L, page, all) {
   const file = page === "index" ? "index.html" : `${page}.html`;
   const ctx = makeCtx(L, file);
   const built = BUILDERS[page](L, ctx, all);
-  const dict = JSON.stringify(L).replace(/<\//g, "<\\/");
+  const runtimeContent = { ...L };
+  delete runtimeContent.seo;
+  const dict = JSON.stringify(runtimeContent).replace(/<\//g, "<\\/");
   const title = TITLES[page](L);
 
   const bodyChrome =
@@ -964,7 +1410,9 @@ function renderPage(L, page, all) {
       ? `${landingHeader(L, ctx, all)}
 <main>${built.body}</main>
 ${footer(L, ctx)}`
-      : `<div class="app">
+      : built.chrome === "info"
+        ? `${infoHeader(L, ctx, all, page)}\n<main>${built.body}</main>\n${footer(L, ctx)}`
+        : `<div class="app">
   ${sidebar(L, ctx, page)}
   <div class="main">
     ${topbar(L, ctx, page, title)}
@@ -1037,4 +1485,6 @@ writeFileSync(
   "utf8"
 );
 
-console.log(`JurisMind: ${written} pages written (${LANGS.map((l) => l.code).join(" · ")}) → ${ROOT}`);
+writeFileSync(join(ROOT, "llms.txt"), llmsTxt(SITE_URL), "utf8");
+
+console.log(`JurisMind: ${written} pages + llms.txt written (${LANGS.map((l) => l.code).join(" · ")}) → ${ROOT}`);

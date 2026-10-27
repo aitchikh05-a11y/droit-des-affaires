@@ -13,13 +13,24 @@
    `wrangler dev`, and the GitHub workflow calls it directly.
 
    SITE_URL (optional): absolute origin used for sitemap.xml and
-   robots.txt. Defaults to the jurismind.pages.dev placeholder.
+   robots.txt, sitemap.xml and llms.txt. Defaults to
+   https://droit-des-affaires-dqt.pages.dev.
    ============================================================ */
 import { mkdirSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { llmsTxt } from "./llms.mjs";
+import {
+  LANG_CODES,
+  PAGES,
+  SECURITY_ADVISORY_URL,
+  SECURITY_EMAIL,
+  SITE_MODIFIED,
+  canonicalUrl,
+  getSiteUrl
+} from "./site.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = join(ROOT, "dist");
@@ -94,6 +105,17 @@ const HEADERS = `# ============================================================
 /ar/
   Cache-Control: public, max-age=0, must-revalidate
 
+# AI discovery files should never be pinned by a long cache
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
 # Cloudflare-injected assets, if any
 /cdn-cgi/*
   Cache-Control: public, max-age=31536000, immutable
@@ -125,75 +147,95 @@ const REDIRECTS = `# ===========================================================
 # would also swallow real assets.
 `;
 
-/* ---------- 4. branded 404 (served by Cloudflare for unknown paths) ---------- */
+/* ---------- 4. branded 404 (deliberately isolated from home-page SEO) ---------- */
 function page404() {
-  const src = readFileSync(join(ROOT, "index.html"), "utf8");
-  // Canonical, extension-free URLs — Cloudflare redirects /index.html → / and
-  // /fr/index.html → /fr/, so linking straight at the canonical path skips a hop.
-  const langLinks = [
-    { code: "en", href: "/", flag: "#012169", label: "English" },
-    { code: "fr", href: "/fr/", flag: "#002395", label: "Français" },
-    { code: "ar", href: "/ar/", flag: "#C1272D", label: "العربية" }
+  const links = [
+    { href: "/", flag: "#012169", label: "English" },
+    { href: "/fr/", flag: "#002395", label: "Français" },
+    { href: "/ar/", flag: "#C1272D", label: "العربية" }
   ];
-  return src
-    .replace(/<title>[^<]*<\/title>/, "<title>404 — JurisMind</title>")
-    .replace(
-      /(<div class="container hero-grid">)/,
-      `<div class="container" style="text-align:center;padding:60px 22px 10px">
-      <p class="kicker kicker-coral">HTTP 404</p>
-      <h1 style="font-size:clamp(2rem,6vw,3.4rem);margin-bottom:10px">Page not found</h1>
-      <p class="muted" style="max-width:56ch;margin:0 auto 18px">
-        This page does not exist in the ${langLinks.length} language builds. Pick a language and keep studying.
-      </p>
-      <div class="hero-cta" style="justify-content:center">
-        ${langLinks
-          .map(
-            (l) =>
-              `<a class="btn btn-ghost" href="${l.href}"><span style="width:20px;height:13px;border-radius:3px;background:${l.flag};box-shadow:inset 0 0 0 1px rgba(25,25,35,.2);display:inline-block"></span>${l.label}</a>`
-          )
-          .join("")}
-        <a class="btn btn-lime" href="/">JurisMind home</a>
-      </div>
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>404 — JurisMind</title>
+<meta name="description" content="The requested JurisMind page was not found. Choose a language to return to the learning path.">
+<link rel="icon" href="/assets/og/jurismind-mark.png">
+<link rel="stylesheet" href="/assets/css/jurismind.css">
+</head>
+<body data-page="not-found">
+<main class="container" style="min-height:70vh;display:grid;place-items:center;text-align:center;padding:80px 22px">
+  <div>
+    <p class="kicker kicker-coral">HTTP 404</p>
+    <h1 style="font-size:clamp(2.2rem,6vw,3.8rem)">Page not found</h1>
+    <p class="muted" style="max-width:56ch;margin:0 auto 22px">
+      This page does not exist in the three language builds. Pick a language and keep studying.
+    </p>
+    <div class="hero-cta" style="justify-content:center">
+      ${links
+        .map(
+          (l) =>
+            `<a class="btn btn-ghost" href="${l.href}"><span style="width:20px;height:13px;border-radius:3px;background:${l.flag};display:inline-block"></span>${l.label}</a>`
+        )
+        .join("")}
+      <a class="btn btn-lime" href="/">JurisMind home</a>
     </div>
-    $1`
-    );
+  </div>
+</main>
+</body>
+</html>
+`;
 }
 
-/* ---------- 5. robots.txt + sitemap.xml (only if not already provided) ---------- */
+/* ---------- 5. discovery files: robots, sitemap, llms.txt, manifest ---------- */
 function writeExtras(siteUrl) {
-  const today = new Date().toISOString().slice(0, 10);
-  // Canonical URLs as Cloudflare serves them: /, /dashboard, /fr/,
-  // /fr/dashboard … (a .html URL answers with a 307 to these).
-  const pages = ["", "dashboard", "path", "practice", "subjects", "tutor"];
   const urls = [];
-  for (const lang of ["", "fr", "ar"]) {
-    for (const p of pages) {
-      const loc = p === "" ? `${siteUrl}/${lang ? lang + "/" : ""}` : `${siteUrl}/${[lang, p].filter(Boolean).join("/")}`;
-      urls.push(`  <url><loc>${loc}</loc><lastmod>${today}</lastmod></url>`);
+  for (const code of LANG_CODES) {
+    for (const page of PAGES) {
+      const loc = canonicalUrl(code, page, siteUrl);
+      const alternates = LANG_CODES.map(
+        (alt) => `    <xhtml:link rel="alternate" hreflang="${alt}" href="${canonicalUrl(alt, page, siteUrl)}" />`
+      ).join("\n");
+      urls.push(
+        `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${SITE_MODIFIED}</lastmod>\n${alternates}\n    <xhtml:link rel="alternate" hreflang="x-default" href="${canonicalUrl(
+          "en",
+          page,
+          siteUrl
+        )}" />\n  </url>`
+      );
     }
   }
   writeFileSync(
     join(DIST, "sitemap.xml"),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join(
+      "\n"
+    )}\n</urlset>\n`
   );
-  writeFileSync(join(DIST, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`);
+  writeFileSync(
+    join(DIST, "robots.txt"),
+    `User-agent: *\nAllow: /\n\n# LLM-friendly site summary: ${siteUrl}/llms.txt\nSitemap: ${siteUrl}/sitemap.xml\n`
+  );
+  writeFileSync(join(DIST, "llms.txt"), llmsTxt(siteUrl), "utf8");
+
   const manifest = {
+    id: "/",
     name: "JurisMind",
     short_name: "JurisMind",
-    description: "Adaptive learning path for law students",
-    start_url: "/dashboard.html",
+    description: "Adaptive, evidence-based learning path for law students",
+    lang: "en",
+    start_url: "/dashboard",
+    scope: "/",
     display: "standalone",
     background_color: "#F7F7F2",
     theme_color: "#191923",
+    categories: ["education", "legal"],
     icons: [
       {
-        src:
-          "data:image/svg+xml," +
-          encodeURIComponent(
-            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="120" fill="#191923"/><path d="M150 120v190c0 60 46 100 106 100s106-40 106-100" stroke="#C6FF4D" stroke-width="56" fill="none" stroke-linecap="round"/></svg>`
-          ),
+        src: "/assets/og/jurismind-mark.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any"
       }
     ]
@@ -202,7 +244,7 @@ function writeExtras(siteUrl) {
   mkdirSync(join(DIST, ".well-known"), { recursive: true });
   writeFileSync(
     join(DIST, ".well-known/security.txt"),
-    `Contact: mailto:security@droit-des-affaires-dqt.pages.dev\nCanonical: ${siteUrl}/.well-known/security.txt\nPreferred-Languages: en, fr, ar\nExpires: 2027-12-31T23:59:59.000Z\n`
+    `Contact: ${SECURITY_ADVISORY_URL}\nContact: mailto:${SECURITY_EMAIL}\nCanonical: ${siteUrl}/.well-known/security.txt\nPreferred-Languages: en, fr, ar\nExpires: 2027-12-31T23:59:59.000Z\n`
   );
 }
 
@@ -225,11 +267,11 @@ writeFileSync(join(DIST, "_headers"), HEADERS);
 writeFileSync(join(DIST, "_redirects"), REDIRECTS);
 writeFileSync(join(DIST, "404.html"), page404());
 writeFileSync(join(ROOT, ".assetsignore"), ASSETSIGNORE);
-const siteUrl = (process.env.SITE_URL || "https://droit-des-affaires-dqt.pages.dev").replace(/\/+$/, "");
+const siteUrl = getSiteUrl();
 writeExtras(siteUrl);
 
 console.log(
-  `JurisMind → dist/ : ${files} files, ${(bytes / 1024).toFixed(0)} kB copied, plus _headers, _redirects, 404.html, sitemap.xml, robots.txt, site.webmanifest`
+  `JurisMind → dist/ : ${files} files, ${(bytes / 1024).toFixed(0)} kB copied, plus _headers, _redirects, 404.html, sitemap.xml, robots.txt, llms.txt, site.webmanifest`
 );
 console.log(`Sitemap/robots origin: ${siteUrl}  (override with the SITE_URL env variable)`);
 console.log(`Preview locally:  npx wrangler dev`);

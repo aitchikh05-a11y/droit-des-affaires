@@ -20,6 +20,7 @@ export default {
       { href: '#retention', label: 'Retention' },
       { href: '#subjects', label: 'Subjects' },
       { href: '#tutor', label: 'AI tutor' },
+      { href: '#evidence', label: 'Evidence' },
       { href: '#faq', label: 'FAQ' }
     ],
     app: [
@@ -177,7 +178,7 @@ export default {
     },
     faq: {
       kicker: 'FAQ',
-      title: 'Questions students actually ask.',
+      title: 'What do law students ask about JurisMind?',
       items: [
         {
           q: 'Is JurisMind a summary of the law?',
@@ -236,9 +237,11 @@ export default {
       }
     ],
     legal: [
-      { href: '#', label: 'Privacy' },
-      { href: '#', label: 'Terms' },
-      { href: '#', label: 'Accessibility' }
+      { href: 'about.html', label: 'About' },
+      { href: 'contact.html', label: 'Contact' },
+      { href: 'privacy.html', label: 'Privacy' },
+      { href: 'terms.html', label: 'Terms' },
+      { href: 'accessibility.html', label: 'Accessibility' }
     ],
     disclaimer: 'Educational tool — not legal advice.',
     rights: '© 2026 JurisMind. Demo project.',

@@ -20,6 +20,7 @@ export default {
       { href: '#retention', label: 'Rétention' },
       { href: '#subjects', label: 'Matières' },
       { href: '#tutor', label: 'Tuteur IA' },
+      { href: '#evidence', label: 'Preuves' },
       { href: '#faq', label: 'FAQ' }
     ],
     app: [
@@ -177,7 +178,7 @@ export default {
     },
     faq: {
       kicker: 'FAQ',
-      title: 'Les questions que les étudiants posent vraiment.',
+      title: 'Quelles questions les étudiants en droit posent-ils sur JurisMind ?',
       items: [
         {
           q: 'JurisMind, c\u2019est un résumé de cours ?',
@@ -236,9 +237,11 @@ export default {
       }
     ],
     legal: [
-      { href: '#', label: 'Confidentialité' },
-      { href: '#', label: 'Conditions' },
-      { href: '#', label: 'Accessibilité' }
+      { href: 'about.html', label: 'À propos' },
+      { href: 'contact.html', label: 'Contact' },
+      { href: 'privacy.html', label: 'Confidentialité' },
+      { href: 'terms.html', label: 'Conditions' },
+      { href: 'accessibility.html', label: 'Accessibilité' }
     ],
     disclaimer: 'Outil pédagogique — pas un conseil juridique.',
     rights: '© 2026 JurisMind. Projet de démonstration.',

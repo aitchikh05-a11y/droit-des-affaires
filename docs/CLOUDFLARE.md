@@ -1,7 +1,8 @@
 # Deploying JurisMind on Cloudflare
 
-JurisMind is a plain static site: **21 HTML pages** (English at the root, `fr/` and `ar/`
-sub-folders) plus `assets/css` and `assets/js`. It is published to **Cloudflare Workers with
+JurisMind is a plain static site: **36 HTML pages** — 33 indexable pages (English at the
+root, `fr/` and `ar/` sub-folders) plus three noindex `login.html` aliases — and the
+`assets/css`, `assets/js` and `assets/og` folders. It is published to **Cloudflare Workers with
 static assets** — a Worker that has no script at all, so every request is answered by the
 asset router and the whole site costs nothing but bandwidth. Cloudflare Pages serves the
 same files just as well (section 4).
@@ -15,7 +16,7 @@ Everything below is already in the repository; nothing to write by hand.
 | Key | Value | Why |
 | --- | --- | --- |
 | `name` | `droit-des-affaires` | The Worker. Change it if your Worker is called something else; Workers Builds passes the real name in `WRANGLER_CI_OVERRIDE_NAME` and only logs a warning if the two disagree. |
-| `compatibility_date` | `2026-10-12` | Pins the runtime behaviour of the Worker. There is no script, so it documents which version of Cloudflare's asset router this deploy was validated against. |
+| `compatibility_date` | `2026-10-26` | Pins the runtime behaviour of the Worker. There is no script, so it documents which version of Cloudflare's asset router this deploy was validated against. |
 | `[build] command` | `node tools/cf-build.mjs` | Wrangler runs this before every `deploy`, `versions upload` and `dev`, so `dist/` is always fresh and no build command is needed in the dashboard or in CI. |
 | `[assets] directory` | `./dist` | The published folder. |
 | `[assets] not_found_handling` | `404-page` | Unknown paths return `dist/404.html` with a real 404 status. |
@@ -86,8 +87,9 @@ and prints its preview URL — that is what the pull-request job below uses.
 
 ## 3. GitHub Actions (optional)
 
-`.github/workflows/cloudflare.yml` builds the site on every push and pull request, verifies
-that all 21 pages exist with their content dictionary and language picker, uploads `dist/` as
+.github/workflows/cloudflare.yml` builds the site on every push and pull request, verifies
+that all 33 indexable pages exist with their content dictionary and language picker, runs the
+GEO regression checks, and uploads `dist/` as
 an artifact, and only then deploys:
 
 | Kind | Name | Value |
@@ -123,9 +125,10 @@ things: only the one you deploy to needs to match `name` in `wrangler.toml`.
 | --- | --- |
 | `_headers` | Security headers (CSP, `nosniff`, `X-Frame-Options`, Referrer-Policy, Permissions-Policy) and caching: `assets/*` immutable for a year (they carry `?v=<hash>`), HTML always revalidated |
 | `_redirects` | The `/login` aliases (301 to the dashboard in the matching language). Clean URLs are not listed here — `html_handling` serves them, and a rule pointing at a `.html` file would loop (section 0.1) |
-| `404.html` | Branded not-found page with the three language flags and a way back |
-| `sitemap.xml`, `robots.txt` | All 18 indexable pages under their canonical clean URLs (`/dashboard`, `/fr/practice`…) with today's `lastmod`; the origin comes from the `SITE_URL` env variable (default `https://jurismind.pages.dev`) |
-| `site.webmanifest` | Installable PWA metadata, inline SVG icon, `#191923` theme colour |
+| `404.html` | Branded, `noindex` not-found page with the three language flags and a way back; it deliberately carries no canonical or JSON-LD |
+| `sitemap.xml`, `robots.txt` | All 33 indexable pages under their canonical clean URLs (`/dashboard`, `/fr/practice`…), with hreflang alternates and the reviewed `lastmod`; the origin comes from the `SITE_URL` env variable (default `https://droit-des-affaires-dqt.pages.dev`) |
+| `llms.txt` | AI-crawler site index with the three language builds, evidence sources, entity/contact links and canonical-URL notes |
+| `site.webmanifest` | Installable PWA metadata, 512×512 PNG icon, `#191923` theme colour |
 | `.assetsignore` | Keeps `tools/`, `*.md`, `wrangler.toml` out of a direct upload of the repository root |
 
 `dist/` is git-ignored — it is a build artifact, and `wrangler.toml` regenerates it.
@@ -144,8 +147,9 @@ things: only the one you deploy to needs to match `name` in `wrangler.toml`.
 ## Local check before deploying
 
 ```bash
-node tools/cf-build.mjs      # → dist/
-npx wrangler dev             # serves dist/ with _headers, _redirects and 404.html applied
+node tools/cf-build.mjs       # → dist/
+node tools/verify-geo.mjs dist # checks canonical, JSON-LD, citations, dates, llms.txt, sitemap and OG tags
+npx wrangler dev              # serves dist/ with _headers, _redirects and 404.html applied
 npx wrangler deploy --dry-run --outdir .wrangler/tmp   # validates the config, uploads nothing
 ```
 

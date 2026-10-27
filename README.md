@@ -26,12 +26,17 @@ typeface and its own legal vocabulary).
 
 | File | Content |
 | --- | --- |
-| `index.html` | Landing: hero, retention explainer with a decay chart, method, live “next exercise” preview, subjects, stats, journey, tutor preview, FAQ. |
+| `index.html` | Landing: hero, retention explainer with a decay chart, method, live “next exercise” preview, subjects, evidence, identity, tutor preview and FAQ. |
 | `dashboard.html` | Learning path dashboard: readiness ring, weak spots, retention schedule, 7-day activity, subject progress, milestones, badges, recommendations. |
 | `path.html` | The journey: 5 stages × subject tabs, milestones, at-risk topics, upcoming reviews, subject mastery. |
 | `practice.html` | Adaptive practice session: setup, 5-question run with timer, feedback with mastery delta + next review, live mastery sidebar, session summary. |
 | `subjects.html` | Subject library: per-topic mastery, weak topics, next reviews, exercise counts. |
 | `tutor.html` | AI tutor: keyword-matched knowledge base, three answer styles (simple / exam / case), context panel that shows the learner’s weak topics. |
+| `about.html` | Who maintains the project, editorial policy and the limits of the educational content. |
+| `contact.html` | Public bug/correction channel, private security reporting and source-verification links. |
+| `privacy.html` | Browser-local progress, analytics and third-party font requests. |
+| `terms.html` | Educational purpose, limitations and reuse notice. |
+| `accessibility.html` | Keyboard, RTL, reduced-motion and semantic-HTML support plus a reporting channel. |
 
 Progress lives in `localStorage` (`jurismind.state.v1`) — nothing leaves the browser.
 Every visitor starts from **Level 0** (`0 XP`, `0` streak, `0 %` mastery) with no pre-seeded fake data; “Reset progress” returns to Level 0 at any time.
@@ -50,6 +55,26 @@ hashes intact and never redirecting a first-time visitor. Deep links work too:
 `/index.html?lang=ar`, `/fr/practice.html?lang=en&subject=labour` — on Cloudflare those clean up
 on the way in (`/index.html?lang=ar` → `/?lang=ar`, `/fr/practice.html` → `/fr/practice`) with the
 query string intact.
+
+## AI-search / GEO readiness
+
+Every indexable page ships a self-referencing canonical URL, hreflang alternates, complete
+Open Graph/Twitter metadata and a connected JSON-LD graph for the Organization, WebSite,
+editorial author, social image, WebPage and breadcrumbs. Visible bylines and machine-readable
+`datePublished` / `dateModified` dates appear on all pages.
+
+The three home pages add `Article`, `LearningResource` and `FAQPage` schema, question-style
+headings, a semantic comparison table and lists, an answer-first evidence section with verbatim
+quotations, and citations to three peer-reviewed learning-science sources:
+[Dunlosky et al. (2013)](https://doi.org/10.1177/1529100612453266),
+[Cepeda et al. (2006)](https://doi.org/10.1037/0033-2909.132.3.354) and
+[Roediger & Karpicke (2006)](https://doi.org/10.1111/j.1467-9280.2006.01693.x). The cited
+research supports the learning method; course materials remain the authority for legal rules.
+
+The generated `llms.txt`, `sitemap.xml`, `robots.txt`, social preview images and real
+About/Contact/Privacy/Terms/Accessibility pages give AI crawlers a clear, verifiable entity
+and contact trail. Run `node tools/cf-build.mjs && node tools/verify-geo.mjs dist` to check all
+of these signals before deploying.
 
 ## Design system
 
@@ -71,7 +96,15 @@ assets/js/app.js                # runtime core: i18n, state, memory model, shell
 assets/js/engine.js             # adaptive engine: picking, scheduling, badges
 assets/js/pages.js              # page renderers (landing … tutor)
 tools/content/{en,fr,ar}.mjs    # content dictionaries: copy, 8 subjects, 19 exercises, tutor KB
+tools/content/seo.mjs           # trilingual editorial, evidence and trust-page copy
+tools/content/evidence.mjs      # peer-reviewed sources and verbatim quotations
+tools/site.mjs                  # canonical origin, page list and reviewed dates
 tools/build.mjs                 # static generator (no dependencies)
+tools/cf-build.mjs              # dist/ + discovery files for Cloudflare
+tools/llms.mjs                  # llms.txt generator
+tools/verify-geo.mjs            # deterministic GEO/SEO regression checks
+assets/og/                      # 1200×630 social card and 512×512 logo (SVG + PNG)
+llms.txt                        # generated AI-crawler site index
 ```
 
 ## Deploying to Cloudflare
@@ -84,8 +117,8 @@ It is published as a **Worker with static assets** — no Worker script, `dist/`
 | File | Role |
 | --- | --- |
 | `wrangler.toml` | Worker config: `name`, `compatibility_date`, `[build] command = node tools/cf-build.mjs`, `[assets] directory = ./dist`, branded 404 |
-| `tools/cf-build.mjs` | Regenerates the pages and writes `dist/` + `_headers`, `_redirects`, `404.html`, `sitemap.xml`, `robots.txt`, `site.webmanifest` |
-| `.github/workflows/cloudflare.yml` | CI: builds, verifies all 21 pages, uploads `dist/`; deploys and previews when the Cloudflare secrets are set |
+| `tools/cf-build.mjs` | Regenerates the pages and writes `dist/` + `_headers`, `_redirects`, `404.html`, `sitemap.xml`, `robots.txt`, `llms.txt`, `site.webmanifest` |
+| `.github/workflows/cloudflare.yml` | CI: builds, verifies all 33 indexable pages and GEO signals, uploads `dist/`; deploys and previews when the Cloudflare secrets are set |
 | `.assetsignore` | Keeps `tools/`, `*.md` and `wrangler.toml` out of a direct upload of the repository root |
 | `docs/CLOUDFLARE.md` | Step-by-step guide (dashboard, Wrangler CLI, GitHub Actions, Pages) |
 
@@ -102,8 +135,10 @@ Cloudflare Pages can serve the same `dist/` folder instead — see `docs/CLOUDFL
 ## Build & run
 
 ```bash
-node tools/build.mjs        # regenerate all 21 HTML pages
-python3 -m http.server 8080 # then open http://localhost:8080
+node tools/build.mjs            # regenerate all 36 HTML pages + llms.txt
+node tools/cf-build.mjs         # build dist/ for deployment
+node tools/verify-geo.mjs dist  # verify canonical, schema, citations and discovery files
+python3 -m http.server 8080     # then open http://localhost:8080
 ```
 
 The site is fully static: open `index.html` through any web server (a local one is needed

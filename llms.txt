@@ -1,0 +1,81 @@
+# JurisMind
+
+> JurisMind is a free, open-source, server-rendered learning path for law students. It finds weak topics with short case questions, then schedules spaced reviews at 1, 3, 7, 14 and 30 days. English, French and Arabic are complete builds; Arabic uses RTL. Learner progress stays in browser localStorage. The content is educational, not legal advice.
+
+Last reviewed: 2026-10-26. Publisher and author: JurisMind Editorial Team.
+
+## Start here
+
+- [English home](https://droit-des-affaires-dqt.pages.dev/): product overview, evidence, FAQ, identity and sources.
+- [Accueil français](https://droit-des-affaires-dqt.pages.dev/fr/): présentation, preuves, FAQ, identité et sources.
+- [الصفحة الرئيسية العربية](https://droit-des-affaires-dqt.pages.dev/ar/): نظرة عامة، الأدلة، الأسئلة الشائعة، الهوية والمصادر.
+- [Robots.txt](https://droit-des-affaires-dqt.pages.dev/robots.txt) · [Sitemap](https://droit-des-affaires-dqt.pages.dev/sitemap.xml) · [This file](https://droit-des-affaires-dqt.pages.dev/llms.txt)
+
+## English pages
+
+- [Dashboard](https://droit-des-affaires-dqt.pages.dev/dashboard): Dashboard (EN build).
+- [Learning path](https://droit-des-affaires-dqt.pages.dev/path): Learning path (EN build).
+- [Adaptive practice](https://droit-des-affaires-dqt.pages.dev/practice): Adaptive practice (EN build).
+- [Subject library](https://droit-des-affaires-dqt.pages.dev/subjects): Subject library (EN build).
+- [AI study tutor](https://droit-des-affaires-dqt.pages.dev/tutor): AI study tutor (EN build).
+- [About](https://droit-des-affaires-dqt.pages.dev/about): About (EN build).
+- [Contact](https://droit-des-affaires-dqt.pages.dev/contact): Contact (EN build).
+- [Privacy notice](https://droit-des-affaires-dqt.pages.dev/privacy): Privacy notice (EN build).
+- [Terms of use](https://droit-des-affaires-dqt.pages.dev/terms): Terms of use (EN build).
+- [Accessibility statement](https://droit-des-affaires-dqt.pages.dev/accessibility): Accessibility statement (EN build).
+
+## Français
+
+- [Tableau de bord](https://droit-des-affaires-dqt.pages.dev/fr/dashboard): Dashboard (FR build).
+- [Parcours](https://droit-des-affaires-dqt.pages.dev/fr/path): Learning path (FR build).
+- [Entraînement adaptatif](https://droit-des-affaires-dqt.pages.dev/fr/practice): Adaptive practice (FR build).
+- [Bibliothèque des matières](https://droit-des-affaires-dqt.pages.dev/fr/subjects): Subject library (FR build).
+- [Tuteur IA](https://droit-des-affaires-dqt.pages.dev/fr/tutor): AI study tutor (FR build).
+- [À propos](https://droit-des-affaires-dqt.pages.dev/fr/about): About (FR build).
+- [Contact](https://droit-des-affaires-dqt.pages.dev/fr/contact): Contact (FR build).
+- [Confidentialité](https://droit-des-affaires-dqt.pages.dev/fr/privacy): Privacy notice (FR build).
+- [Conditions d’utilisation](https://droit-des-affaires-dqt.pages.dev/fr/terms): Terms of use (FR build).
+- [Accessibilité](https://droit-des-affaires-dqt.pages.dev/fr/accessibility): Accessibility statement (FR build).
+
+## العربية
+
+- [لوحة التحكم](https://droit-des-affaires-dqt.pages.dev/ar/dashboard): Dashboard (AR build).
+- [المسار التعليمي](https://droit-des-affaires-dqt.pages.dev/ar/path): Learning path (AR build).
+- [التمرين التكيّفي](https://droit-des-affaires-dqt.pages.dev/ar/practice): Adaptive practice (AR build).
+- [مكتبة المواد](https://droit-des-affaires-dqt.pages.dev/ar/subjects): Subject library (AR build).
+- [المدرّس الذكي](https://droit-des-affaires-dqt.pages.dev/ar/tutor): AI study tutor (AR build).
+- [من نحن](https://droit-des-affaires-dqt.pages.dev/ar/about): About (AR build).
+- [اتصل بنا](https://droit-des-affaires-dqt.pages.dev/ar/contact): Contact (AR build).
+- [الخصوصية](https://droit-des-affaires-dqt.pages.dev/ar/privacy): Privacy notice (AR build).
+- [شروط الاستخدام](https://droit-des-affaires-dqt.pages.dev/ar/terms): Terms of use (AR build).
+- [إمكانية الولوج](https://droit-des-affaires-dqt.pages.dev/ar/accessibility): Accessibility statement (AR build).
+
+## Method and evidence
+
+Peer-reviewed sources: the learning claims are explained in the answer-first section [Why does spaced retrieval work?](https://droit-des-affaires-dqt.pages.dev/#evidence). It includes a comparison table, two verbatim quotations and a reference list. French and Arabic equivalents are at [Preuves](https://droit-des-affaires-dqt.pages.dev/fr/#evidence) and [الأدلة](https://droit-des-affaires-dqt.pages.dev/ar/#evidence).
+
+- Dunlosky et al. (2013). *Improving Students’ Learning With Effective Learning Techniques: Promising Directions From Cognitive and Educational Psychology*. Psychological Science in the Public Interest, 14(1), 4–58. [Publisher record](https://journals.sagepub.com/doi/10.1177/1529100612453266) · [DOI](https://doi.org/10.1177/1529100612453266).
+- Cepeda et al. (2006). *Distributed Practice in Verbal Recall Tasks: A Review and Quantitative Synthesis*. Psychological Bulletin, 132(3), 354–380. [Publisher record](https://pubmed.ncbi.nlm.nih.gov/16719566/) · [DOI](https://doi.org/10.1037/0033-2909.132.3.354).
+- Roediger & Karpicke (2006). *Test-Enhanced Learning: Taking Memory Tests Improves Long-Term Retention*. Psychological Science, 17(3), 249–255. [Publisher record](https://pubmed.ncbi.nlm.nih.gov/16507066/) · [DOI](https://doi.org/10.1111/j.1467-9280.2006.01693.x).
+
+The JurisMind decay model is an educational simplification. The 1/3/7/14/30-day schedule is a product design, not a single universal schedule prescribed by those studies.
+
+## Entity and contact
+
+- Organization: JurisMind; author: JurisMind Editorial Team.
+- [About](https://droit-des-affaires-dqt.pages.dev/about): editorial policy and project scope.
+- [Contact](https://droit-des-affaires-dqt.pages.dev/contact): support and security channels.
+- [Public source repository](https://github.com/aitchikh05-a11y/droit-des-affaires): builder, dictionaries, assets and deployment config.
+- [Public issue tracker](https://github.com/aitchikh05-a11y/droit-des-affaires/issues): bugs, corrections and accessibility reports.
+- [Private security advisory](https://github.com/aitchikh05-a11y/droit-des-affaires/security/advisories/new): do not disclose vulnerabilities publicly.
+- [Privacy notice](https://droit-des-affaires-dqt.pages.dev/privacy): localStorage, analytics and Google Fonts.
+- [Terms of use](https://droit-des-affaires-dqt.pages.dev/terms): educational purpose and limitations.
+- [Accessibility statement](https://droit-des-affaires-dqt.pages.dev/accessibility): keyboard, RTL, reduced-motion and reporting.
+
+## Crawling notes
+
+- Canonical URLs are extension-free except the three home pages: `/`, `/fr/`, `/ar/`.
+- HTML pages include self-referencing canonical links, hreflang alternates for en, fr, ar, Organization/WebSite/author/date JSON-LD, Open Graph and Twitter Card metadata.
+- The home pages include Article, LearningResource and FAQPage schema plus visible citations to peer-reviewed sources.
+- `login.html` aliases and the 404 page are intentionally noindex. Every other page is indexable and listed in the sitemap.
+- The site is static; no API key or JavaScript execution is needed to read the main content.
