@@ -22,15 +22,16 @@ name = "droit-des-affaires"
 # Bump this to today's date when you change the file. It pins the runtime
 # behaviour of the Worker; there is no script here, so it mainly documents the
 # version of Cloudflare's asset router this deploy was validated against.
-compatibility_date = "2026-10-12"
+compatibility_date = "2026-10-26"
 
 # ------------------------------------------------------------------
 # Build: regenerate dist/ before every deploy.
 #
 # Wrangler runs this automatically for `wrangler deploy`,
 # `wrangler versions upload` and `wrangler dev`, so no build command has to be
-# configured in the Cloudflare dashboard or in CI. It writes 21 pages plus
-# _headers, _redirects, 404.html, sitemap.xml, robots.txt, site.webmanifest.
+# configured in the Cloudflare dashboard or in CI. It writes 36 HTML pages
+# (33 indexable + 3 login aliases), llms.txt, _headers, _redirects,
+# 404.html, sitemap.xml, robots.txt and site.webmanifest.
 # ------------------------------------------------------------------
 [build]
 command = "node tools/cf-build.mjs"

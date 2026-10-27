@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="JurisMind mark">
+  <rect width="512" height="512" rx="120" fill="#191923"/>
+  <path d="M170 118v186c0 64 38 103 86 103s86-39 86-103" fill="none" stroke="#c6ff4d" stroke-width="56" stroke-linecap="round"/>
+  <circle cx="256" cy="93" r="14" fill="#b9a0ff"/>
+</svg>

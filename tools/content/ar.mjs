@@ -20,6 +20,7 @@ export default {
       { href: '#retention', label: 'الاستبقاء' },
       { href: '#subjects', label: 'المواد' },
       { href: '#tutor', label: 'المدرّس الذكي' },
+      { href: '#evidence', label: 'الأدلة' },
       { href: '#faq', label: 'أسئلة شائعة' }
     ],
     app: [
@@ -177,7 +178,7 @@ export default {
     },
     faq: {
       kicker: 'أسئلة شائعة',
-      title: 'أسئلة يطرحها الطلبة فعلاً.',
+      title: 'ما الأسئلة التي يطرحها طلبة الحقوق حول JurisMind؟',
       items: [
         {
           q: 'هل JurisMind ملخص للقانون؟',
@@ -236,9 +237,11 @@ export default {
       }
     ],
     legal: [
-      { href: '#', label: 'الخصوصية' },
-      { href: '#', label: 'الشروط' },
-      { href: '#', label: 'إمكانية الولوج' }
+      { href: 'about.html', label: 'من نحن' },
+      { href: 'contact.html', label: 'اتصل بنا' },
+      { href: 'privacy.html', label: 'الخصوصية' },
+      { href: 'terms.html', label: 'الشروط' },
+      { href: 'accessibility.html', label: 'إمكانية الولوج' }
     ],
     disclaimer: 'أداة تعليمية — ليست استشارة قانونية.',
     rights: '© 2026 JurisMind. مشروع تجريبي.',
